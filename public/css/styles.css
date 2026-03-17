@@ -11108,3 +11108,88 @@ textarea.form-control-lg {
   background-color: #f0b429;
 }
 
+/* ========== Sistema: Layout con sidebar ========== */
+.app-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+.app-main {
+  display: flex;
+  flex: 1;
+}
+.sidebar {
+  width: 240px;
+  min-width: 240px;
+  flex-shrink: 0;
+}
+.sidebar-link {
+  padding: 0.5rem 1rem;
+  border-radius: 0.25rem;
+}
+.sidebar-link:hover,
+.sidebar-link.active {
+  color: #fff !important;
+  text-decoration: none;
+}
+.app-content {
+  flex: 1;
+  padding: 1.5rem;
+}
+@media (max-width: 991.98px) {
+  .sidebar {
+    position: fixed;
+    left: -240px;
+    top: 0;
+    height: 100vh;
+    z-index: 1030;
+    transition: left 0.3s;
+  }
+  .sidebar.show {
+    left: 0;
+  }
+}
+
+/* === Sistema M. Hamilton - Layout con sidebar === */
+.app-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+.app-main {
+  display: flex;
+  flex: 1;
+}
+.sidebar {
+  width: 260px;
+  min-width: 260px;
+  flex-shrink: 0;
+}
+.sidebar-nav .nav-link {
+  padding: 0.6rem 1rem;
+  border-radius: 0.35rem;
+  margin: 0 0.5rem;
+}
+.sidebar-nav .nav-link:hover {
+  background-color: rgba(255,255,255,0.1);
+  color: #fff !important;
+}
+.sidebar-nav .nav-link.active {
+  background-color: rgba(255,255,255,0.2);
+  color: #fff !important;
+}
+.app-content {
+  flex: 1;
+  padding: 1.5rem;
+  background-color: #f8f9fa;
+}
+@media (max-width: 991.98px) {
+  .sidebar {
+    width: 100%;
+    min-width: auto;
+  }
+  .app-main {
+    flex-direction: column;
+  }
+}
+
