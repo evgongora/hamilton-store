@@ -1,4 +1,4 @@
-<?php include_once $_SERVER["DOCUMENT_ROOT"] . "/Proyecto/hamilton-store/Views/layout.php"; ?>
+<?php include_once $_SERVER["DOCUMENT_ROOT"] . "/hamilton-store/public/components/layout_tienda.php"; ?>
 
 <!DOCTYPE html>
 <html lang="en">
@@ -8,7 +8,7 @@
         <meta name="description" content="" />
         <meta name="author" content="" />
         <title>Todos los productos</title>
-        <link rel="icon" type="image/x-icon" href="../assets/img/favicon.png" />
+        <link rel="icon" type="image/x-icon" href="/hamilton-store/public/assets/img/favicon.png" />
         <?php MostrarCSS(); ?>
     </head>
     <body>

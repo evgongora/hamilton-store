@@ -1,4 +1,4 @@
-<?php include_once $_SERVER["DOCUMENT_ROOT"] . "/Proyecto/hamilton-store/Views/layout.php"; ?>
+<?php include_once $_SERVER["DOCUMENT_ROOT"] . "/hamilton-store/public/components/layout_tienda.php"; ?>
 
 <!DOCTYPE html>
 <html lang="en">
@@ -8,7 +8,7 @@
         <meta name="description" content="" />
         <meta name="author" content="" />
         <title>Inicio</title>
-        <link rel="icon" type="image/x-icon" href="../assets/img/favicon.png" />
+        <link rel="icon" type="image/x-icon" href="/hamilton-store/public/assets/img/favicon.png" />
         <?php MostrarCSS(); ?>
     </head>
     <body>
@@ -46,7 +46,7 @@
                         <h2 class="h3 fw-bolder mb-1">Productos Destacados</h2>
                         <p class="text-muted mb-0">Selecci&oacute;n curada con ofertas y productos top.</p>
                     </div>
-                    <a href="AllProducts.php" class="btn btn-outline-dark">Ver todo el cat&aacute;logo</a>
+                    <a href="/hamilton-store/public/pages/tienda/AllProducts.php" class="btn btn-outline-dark">Ver todo el cat&aacute;logo</a>
                 </div>
 
                 <div id="productsGrid" class="row gx-4 gx-lg-5 row-cols-1 row-cols-sm-2 row-cols-lg-4">
@@ -243,4 +243,3 @@
         <?php MostrarJS(); ?>
     </body>
 </html>
-
