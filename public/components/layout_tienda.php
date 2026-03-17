@@ -37,13 +37,11 @@ function MostrarNavbar() {
                     <input class="form-control" id="productSearchInput" type="search" placeholder="Buscar productos" aria-label="Buscar productos" />
                 </form>
                 <div class="navbar-right-actions">
-                    <form class="d-flex navbar-cart-form">
-                        <button class="btn btn-outline-dark" type="submit">
-                            <i class="bi-cart-fill me-1"></i>
-                            Carrito
-                            <span class="badge bg-dark text-white ms-1 rounded-pill">0</span>
-                        </button>
-                    </form>' .
+                    <a class="btn btn-outline-dark navbar-cart-form" href="' . $base . '/pages/tienda/checkout.php">
+                        <i class="bi-cart-fill me-1"></i>
+                        Carrito
+                        <span id="cartBadge" class="badge bg-dark text-white ms-1 rounded-pill">0</span>
+                    </a>' .
                     (empty($_SESSION['user'])
                         ? '<a class="btn btn-outline-secondary navbar-login-btn" href="' . $base . '/pages/auth/login.php">Iniciar sesión</a>'
                         : ('<span class="text-muted me-2 small">' . htmlspecialchars($_SESSION['user']) . '</span>' .
@@ -67,6 +65,8 @@ function MostrarFooter() {
 function MostrarJS() {
     $base = '/hamilton-store/public';
     echo '<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="' . $base . '/js/modules/tienda-carrito.js"></script>
+    <script src="' . $base . '/js/modules/tienda-productos.js?v=2"></script>
     <script src="' . $base . '/js/scripts.js"></script>';
 }
 ?>

@@ -31,7 +31,7 @@
                 </div>
                 <div class="d-flex flex-wrap justify-content-center gap-2 category-buttons">
                     <a class="btn btn-outline-dark" href="#!">Celulares</a>
-                    <a class="btn btn-outline-dark" href="#!">Componentes PC</a>
+                    <a class="btn btn-outline-dark" href="/hamilton-store/public/pages/tienda/catalogo.php">Componentes PC</a>
                     <a class="btn btn-outline-dark" href="#!">Perif&eacute;ricos</a>
                     <a class="btn btn-outline-dark" href="#!">Accesorios</a>
                     <a class="btn btn-outline-dark" href="#!">Televisores y Monitores</a>
@@ -49,127 +49,7 @@
                     <a href="/hamilton-store/public/pages/tienda/AllProducts.php" class="btn btn-outline-dark">Ver todo el cat&aacute;logo</a>
                 </div>
 
-                <div id="productsGrid" class="row gx-4 gx-lg-5 row-cols-1 row-cols-sm-2 row-cols-lg-4">
-                    <div class="col mb-5">
-                        <div class="card h-100 featured-card">
-                            <span class="badge bg-danger position-absolute featured-badge">Oferta</span>
-                            <img class="card-img-top featured-product-image" src="https://dummyimage.com/640x420/1f2937/ffffff&text=RTX+4070" alt="RTX 4070" />
-                            <div class="card-body p-4">
-                                <h5 class="fw-bolder mb-2">Tarjeta gr&aacute;fica RTX 4070</h5>
-                                <p class="text-muted small mb-2">8GB GDDR6X - Alto rendimiento.</p>
-                                <div><span class="text-muted text-decoration-line-through me-2">$699</span><span class="fw-bold">$649</span></div>
-                            </div>
-                            <div class="card-footer p-4 pt-0 border-top-0 bg-transparent">
-                                <a class="btn btn-outline-dark w-100" href="#">Agregar al carrito</a>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col mb-5">
-                        <div class="card h-100 featured-card">
-                            <span class="badge bg-success position-absolute featured-badge">Nuevo</span>
-                            <img class="card-img-top featured-product-image" src="https://dummyimage.com/640x420/0f766e/ffffff&text=Intel+i7+14700K" alt="Intel i7" />
-                            <div class="card-body p-4">
-                                <h5 class="fw-bolder mb-2">Procesador Intel i7 14700K</h5>
-                                <p class="text-muted small mb-2">20 n&uacute;cleos para gaming y productividad.</p>
-                                <div><span class="fw-bold">$429</span></div>
-                            </div>
-                            <div class="card-footer p-4 pt-0 border-top-0 bg-transparent">
-                                <a class="btn btn-outline-dark w-100" href="#">Agregar al carrito</a>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col mb-5">
-                        <div class="card h-100 featured-card">
-                            <span class="badge bg-dark position-absolute featured-badge">Top vendido</span>
-                            <img class="card-img-top featured-product-image" src="https://dummyimage.com/640x420/334155/ffffff&text=SSD+1TB+NVMe" alt="SSD NVMe" />
-                            <div class="card-body p-4">
-                                <h5 class="fw-bolder mb-2">SSD NVMe 1TB Gen4</h5>
-                                <p class="text-muted small mb-2">Carga r&aacute;pida para sistema y juegos.</p>
-                                <div><span class="text-muted text-decoration-line-through me-2">$109</span><span class="fw-bold">$89</span></div>
-                            </div>
-                            <div class="card-footer p-4 pt-0 border-top-0 bg-transparent">
-                                <a class="btn btn-outline-dark w-100" href="#">Agregar al carrito</a>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col mb-5">
-                        <div class="card h-100 featured-card">
-                            <span class="badge bg-warning text-dark position-absolute featured-badge">Oferta</span>
-                            <img class="card-img-top featured-product-image" src="https://dummyimage.com/640x420/7c2d12/ffffff&text=Monitor+27+144Hz" alt="Monitor 27" />
-                            <div class="card-body p-4">
-                                <h5 class="fw-bolder mb-2">Monitor 27&quot; 144Hz</h5>
-                                <p class="text-muted small mb-2">Panel IPS para trabajo y gaming fluido.</p>
-                                <div><span class="text-muted text-decoration-line-through me-2">$289</span><span class="fw-bold">$239</span></div>
-                            </div>
-                            <div class="card-footer p-4 pt-0 border-top-0 bg-transparent">
-                                <a class="btn btn-outline-dark w-100" href="#">Agregar al carrito</a>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col mb-5">
-                        <div class="card h-100 featured-card">
-                            <span class="badge bg-dark position-absolute featured-badge">Top vendido</span>
-                            <img class="card-img-top featured-product-image" src="https://dummyimage.com/640x420/475569/ffffff&text=Teclado+Mecanico" alt="Teclado" />
-                            <div class="card-body p-4">
-                                <h5 class="fw-bolder mb-2">Teclado mec&aacute;nico RGB</h5>
-                                <p class="text-muted small mb-2">Switches t&aacute;ctiles y formato compacto.</p>
-                                <div><span class="fw-bold">$79</span></div>
-                            </div>
-                            <div class="card-footer p-4 pt-0 border-top-0 bg-transparent">
-                                <a class="btn btn-outline-dark w-100" href="#">Agregar al carrito</a>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col mb-5">
-                        <div class="card h-100 featured-card">
-                            <span class="badge bg-success position-absolute featured-badge">Nuevo</span>
-                            <img class="card-img-top featured-product-image" src="https://dummyimage.com/640x420/155e75/ffffff&text=Mouse+Inalambrico" alt="Mouse" />
-                            <div class="card-body p-4">
-                                <h5 class="fw-bolder mb-2">Mouse inal&aacute;mbrico gamer</h5>
-                                <p class="text-muted small mb-2">Bater&iacute;a extendida y sensor de alta precisi&oacute;n.</p>
-                                <div><span class="fw-bold">$49</span></div>
-                            </div>
-                            <div class="card-footer p-4 pt-0 border-top-0 bg-transparent">
-                                <a class="btn btn-outline-dark w-100" href="#">Agregar al carrito</a>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col mb-5">
-                        <div class="card h-100 featured-card">
-                            <span class="badge bg-danger position-absolute featured-badge">Oferta</span>
-                            <img class="card-img-top featured-product-image" src="https://dummyimage.com/640x420/0f172a/ffffff&text=Laptop+Gaming" alt="Laptop" />
-                            <div class="card-body p-4">
-                                <h5 class="fw-bolder mb-2">Laptop gaming 16&quot;</h5>
-                                <p class="text-muted small mb-2">RTX + pantalla 165Hz para m&aacute;ximo rendimiento.</p>
-                                <div><span class="text-muted text-decoration-line-through me-2">$1499</span><span class="fw-bold">$1329</span></div>
-                            </div>
-                            <div class="card-footer p-4 pt-0 border-top-0 bg-transparent">
-                                <a class="btn btn-outline-dark w-100" href="#">Agregar al carrito</a>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col mb-5">
-                        <div class="card h-100 featured-card">
-                            <span class="badge bg-dark position-absolute featured-badge">Top vendido</span>
-                            <img class="card-img-top featured-product-image" src="https://dummyimage.com/640x420/1e293b/ffffff&text=Audifonos+Pro" alt="Audifonos" />
-                            <div class="card-body p-4">
-                                <h5 class="fw-bolder mb-2">Aud&iacute;fonos pro con micr&oacute;fono</h5>
-                                <p class="text-muted small mb-2">Audio envolvente para juego y reuniones.</p>
-                                <div><span class="fw-bold">$99</span></div>
-                            </div>
-                            <div class="card-footer p-4 pt-0 border-top-0 bg-transparent">
-                                <a class="btn btn-outline-dark w-100" href="#">Agregar al carrito</a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <div id="productsGrid" class="row gx-4 gx-lg-5 row-cols-1 row-cols-sm-2 row-cols-lg-4"></div>
             </div>
         </section>
 
@@ -241,5 +121,31 @@
 
         <?php MostrarFooter(); ?>
         <?php MostrarJS(); ?>
+        <script>
+        (function() {
+          var badges = [
+            { badge: 'Oferta', badgeClass: 'bg-danger', precioAntes: 699 },
+            { badge: 'Nuevo', badgeClass: 'bg-success' },
+            { badge: 'Top vendido', badgeClass: 'bg-dark', precioAntes: 109 },
+            { badge: 'Oferta', badgeClass: 'bg-warning text-dark', precioAntes: 289 },
+            { badge: 'Top vendido', badgeClass: 'bg-dark' },
+            { badge: 'Nuevo', badgeClass: 'bg-success' },
+            {},
+            {},
+            { badge: 'Oferta', badgeClass: 'bg-danger', precioAntes: 1499 },
+            { badge: 'Top vendido', badgeClass: 'bg-dark' }
+          ];
+          function init() {
+            if (window.TiendaProductos) {
+              window.TiendaProductos.renderGrid('productsGrid', { badges: badges });
+            }
+          }
+          if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+          } else {
+            init();
+          }
+        })();
+        </script>
     </body>
 </html>

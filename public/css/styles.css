@@ -10875,6 +10875,12 @@ textarea.form-control-lg {
 
 .navbar-cart-form {
   margin-left: 1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-width: 8.5rem;
+  padding-right: 0;
 }
 
 @media (max-width: 991.98px) {
@@ -10958,6 +10964,7 @@ textarea.form-control-lg {
 
 .navbar-cart-form {
   margin: 0;
+  padding-right: 0;
 }
 
 @media (max-width: 991.98px) {
@@ -11183,6 +11190,36 @@ textarea.form-control-lg {
   padding: 1.5rem;
   background-color: #f8f9fa;
 }
+
+/* Navbar del sistema: logo a la izquierda, usuario + logout en esquina derecha */
+.app-navbar {
+  position: relative;
+}
+.app-navbar .container-fluid {
+  flex-wrap: wrap;
+}
+.app-navbar .navbar-brand {
+  flex-shrink: 0;
+}
+.app-navbar .navbar-collapse {
+  display: flex;
+  flex-grow: 1;
+  justify-content: flex-end;
+  align-items: center;
+}
+.app-navbar .navbar-user-logout {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+@media (min-width: 992px) {
+  .app-navbar .navbar-user-logout {
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+}
 @media (max-width: 991.98px) {
   .sidebar {
     width: 100%;
@@ -11191,5 +11228,33 @@ textarea.form-control-lg {
   .app-main {
     flex-direction: column;
   }
+}
+
+.product-quantity-stepper {
+  margin-bottom: 0;
+}
+.product-quantity-stepper .form-label {
+  margin-bottom: 0.35rem;
+}
+.quantity-input-group {
+  max-width: 140px;
+  margin: 0 auto;
+}
+.quantity-input-group .btn {
+  min-width: 2.25rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+.quantity-input-group .qty-input {
+  width: 2.5rem;
+  padding: 0.25rem 0.2rem;
+  font-weight: 600;
+  -moz-appearance: textfield;
+}
+.quantity-input-group .qty-input::-webkit-outer-spin-button,
+.quantity-input-group .qty-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 

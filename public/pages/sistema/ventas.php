@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../../../backend/config/auth_guard.php';
 requireLogin();
 $basePath = dirname(dirname(dirname($_SERVER['SCRIPT_NAME'])));
+if ($basePath === '/' || $basePath === '\\') $basePath = '';
 $pageTitle = 'Ventas - M. Hamilton Store';
 $currentPage = 'ventas';
 $user = $_SESSION['user'] ?? '';
@@ -12,17 +13,83 @@ $role = $_SESSION['role'] ?? '';
 <head>
     <?php include __DIR__ . '/../../components/head.php'; ?>
 </head>
-<body class="app-layout bg-light">
+<body class="app-layout bg-light" data-base-path="<?php echo htmlspecialchars($basePath); ?>">
     <?php include __DIR__ . '/../../components/navbar.php'; ?>
     <div class="app-main">
         <?php include __DIR__ . '/../../components/sidebar.php'; ?>
         <main class="app-content">
-            <h1 class="mb-4">Ventas</h1>
-            <p class="text-muted">Módulo en desarrollo.</p>
+            <h1 class="mb-4">Punto de venta</h1>
+
+            <div class="row g-4">
+                <div class="col-lg-7">
+                    <div class="card mb-4">
+                        <div class="card-header bg-dark text-white">
+                            <h5 class="mb-0"><i class="bi bi-search me-2"></i>Buscar producto</h5>
+                        </div>
+                        <div class="card-body">
+                            <input type="text" id="productSearch" class="form-control form-control-lg" placeholder="Nombre del producto..." autocomplete="off">
+                            <div id="productResults" class="list-group mt-2" style="max-height: 200px; overflow-y: auto;"></div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i class="bi bi-cart me-2"></i>Carrito</h5>
+                            <span id="cartCount" class="badge bg-light text-dark">0</span>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Producto</th>
+                                            <th class="text-end">Cant.</th>
+                                            <th class="text-end">P. unit.</th>
+                                            <th class="text-end">Subtotal</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="cartBody"></tbody>
+                                    <tfoot class="table-light">
+                                        <tr>
+                                            <td colspan="3" class="fw-bold">Total</td>
+                                            <td id="cartTotal" class="text-end fw-bold">₡0</td>
+                                            <td></td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                            <div id="cartEmpty" class="text-center text-muted py-4">El carrito est&aacute; vac&iacute;o</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-5">
+                    <div class="card mb-4">
+                        <div class="card-header bg-dark text-white">
+                            <h5 class="mb-0"><i class="bi bi-person me-2"></i>Cliente</h5>
+                        </div>
+                        <div class="card-body">
+                            <select id="clienteSelect" class="form-select">
+                                <option value="">-- Seleccionar cliente --</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-body">
+                            <button type="button" id="btnConfirmarVenta" class="btn btn-success btn-lg w-100" disabled>
+                                <i class="bi bi-check-circle me-2"></i>Confirmar venta
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </main>
     </div>
     <?php include __DIR__ . '/../../components/footer.php'; ?>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="<?php echo htmlspecialchars($basePath); ?>/js/app.js"></script>
+    <script src="<?php echo htmlspecialchars($basePath); ?>/js/modules/ventas.js"></script>
 </body>
 </html>
