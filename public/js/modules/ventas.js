@@ -29,17 +29,34 @@
     });
   }
 
+  function fillClienteSelect() {
+    const sel = document.getElementById('clienteSelect');
+    if (!sel) return;
+    sel.innerHTML = '<option value="">-- Seleccionar cliente --</option>';
+    clientes.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.id;
+      const nombreCompleto = [c.nombre, c.apellido].filter(Boolean).join(' ');
+      opt.textContent = nombreCompleto;
+      sel.appendChild(opt);
+    });
+  }
+
   function loadClientes() {
+    const stored = localStorage.getItem('hamilton_clientes');
+    if (stored) {
+      try {
+        const data = JSON.parse(stored);
+        if (data.length > 0) {
+          clientes = data;
+          fillClienteSelect();
+          return Promise.resolve(clientes);
+        }
+      } catch (e) {}
+    }
     return fetchJson('/js/mocks/clientes.json').then(data => {
       clientes = data;
-      const sel = document.getElementById('clienteSelect');
-      clientes.forEach(c => {
-        const opt = document.createElement('option');
-        opt.value = c.id;
-        const nombreCompleto = [c.nombre, c.apellido].filter(Boolean).join(' ');
-        opt.textContent = nombreCompleto;
-        sel.appendChild(opt);
-      });
+      fillClienteSelect();
       return clientes;
     });
   }
