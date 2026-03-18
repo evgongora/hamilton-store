@@ -97,6 +97,17 @@
     if (successEl) successEl.style.display = 'block';
   }
 
+  function getClienteActual() {
+    if (typeof window.AuthCliente !== 'undefined' && window.AuthCliente.getClienteActual) {
+      return window.AuthCliente.getClienteActual();
+    }
+    const m = document.cookie.match(/(^| )hamilton_cliente=([^;]+)/);
+    if (!m) return null;
+    try {
+      return JSON.parse(decodeURIComponent(m[2]));
+    } catch (e) { return null; }
+  }
+
   function procesarPago() {
     if (!window.TiendaCarrito) return;
     const items = window.TiendaCarrito.getItems();
@@ -112,12 +123,13 @@
     }
 
     const total = window.TiendaCarrito.getTotal();
+    const cliente = getClienteActual();
     const venta = {
       id: Date.now(),
       fecha: new Date().toISOString(),
       total,
-      clientesIdCliente: null,
-      clienteNombre: 'Cliente tienda',
+      clientesIdCliente: cliente ? cliente.id : null,
+      clienteNombre: cliente ? [cliente.nombre, cliente.apellido].filter(Boolean).join(' ') : 'Cliente tienda',
       empleadosIdEmpleado: 1,
       origen: 'tienda',
       items: items.map(i => ({

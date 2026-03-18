@@ -1,6 +1,7 @@
 -- =============================================================================
--- M. Hamilton Store - Esquema de base de datos Oracle
--- Sin ALTER TABLE: todas las restricciones inline en CREATE TABLE
+-- M. Hamilton Store - Esquema Oracle (normalizado)
+-- Usuarios unificados (admin, cajero, inventario, cliente) + roles + estados
+-- Sin ALTER TABLE: restricciones inline en CREATE TABLE
 -- =============================================================================
 
 -- CREACIÓN DEL ESQUEMA
@@ -11,11 +12,27 @@ GRANT CREATE SESSION TO M_HAMILTON_STORE;
 
 ALTER USER M_HAMILTON_STORE QUOTA UNLIMITED ON DATA;
 
--- Conectar como M_HAMILTON_STORE para ejecutar las tablas
+-- Conectar como M_HAMILTON_STORE
 -- Orden de creación respetando dependencias de FK
 
 -- =============================================================================
--- TABLAS BASE (sin FK o solo a tablas ya creadas)
+-- TABLAS DE REFERENCIA (roles, estados)
+-- =============================================================================
+
+CREATE TABLE roles (
+    id_rol NUMBER GENERATED ALWAYS AS IDENTITY,
+    nombre VARCHAR2(50) NOT NULL,
+    CONSTRAINT roles_PK PRIMARY KEY (id_rol)
+);
+
+CREATE TABLE estados (
+    id_estado NUMBER GENERATED ALWAYS AS IDENTITY,
+    nombre    VARCHAR2(50) NOT NULL,
+    CONSTRAINT estados_PK PRIMARY KEY (id_estado)
+);
+
+-- =============================================================================
+-- TABLAS BASE
 -- =============================================================================
 
 CREATE TABLE provincias (
@@ -31,14 +48,15 @@ CREATE TABLE categorias (
 );
 
 CREATE TABLE clientes (
-    id_cliente    NUMBER GENERATED ALWAYS AS IDENTITY,
-    nombre        VARCHAR2(50) NOT NULL,
-    apellido      VARCHAR2(50) NOT NULL,
-    email         VARCHAR2(150) NOT NULL,
-    telefono      VARCHAR2(25) NOT NULL,
-    fecha_ingreso DATE NOT NULL,
-    estado        VARCHAR2(25) NOT NULL,
-    CONSTRAINT clientes_PK PRIMARY KEY (id_cliente)
+    id_cliente     NUMBER GENERATED ALWAYS AS IDENTITY,
+    nombre         VARCHAR2(50) NOT NULL,
+    apellido       VARCHAR2(50) NOT NULL,
+    email          VARCHAR2(150) NOT NULL,
+    telefono       VARCHAR2(25) NOT NULL,
+    fecha_ingreso  DATE NOT NULL,
+    estados_id_estado NUMBER NOT NULL,
+    CONSTRAINT clientes_PK PRIMARY KEY (id_cliente),
+    CONSTRAINT clientes_estados_FK FOREIGN KEY (estados_id_estado) REFERENCES estados (id_estado)
 );
 
 CREATE TABLE proveedores (
@@ -48,14 +66,15 @@ CREATE TABLE proveedores (
 );
 
 CREATE TABLE empleados (
-    id_empleado   NUMBER GENERATED ALWAYS AS IDENTITY,
-    nombre        VARCHAR2(50) NOT NULL,
-    apellido      VARCHAR2(50) NOT NULL,
-    puesto        VARCHAR2(50) NOT NULL,
-    email         VARCHAR2(150) NOT NULL,
-    fecha_ingreso DATE NOT NULL,
-    estado        VARCHAR2(25) NOT NULL,
-    CONSTRAINT empleados_PK PRIMARY KEY (id_empleado)
+    id_empleado       NUMBER GENERATED ALWAYS AS IDENTITY,
+    nombre            VARCHAR2(50) NOT NULL,
+    apellido          VARCHAR2(50) NOT NULL,
+    puesto            VARCHAR2(50) NOT NULL,
+    email             VARCHAR2(150) NOT NULL,
+    fecha_ingreso     DATE NOT NULL,
+    estados_id_estado NUMBER NOT NULL,
+    CONSTRAINT empleados_PK PRIMARY KEY (id_empleado),
+    CONSTRAINT empleados_estados_FK FOREIGN KEY (estados_id_estado) REFERENCES estados (id_estado)
 );
 
 CREATE TABLE tipo_gestion (
@@ -71,7 +90,7 @@ CREATE TABLE metodos_pago (
 );
 
 -- =============================================================================
--- TABLAS CON FK (orden por dependencia)
+-- TABLAS CON FK (ubicación)
 -- =============================================================================
 
 CREATE TABLE cantones (
@@ -91,17 +110,26 @@ CREATE TABLE distritos (
     CONSTRAINT distritos_cantones_FK FOREIGN KEY (cantones_id_canton) REFERENCES cantones (id_canton)
 );
 
+-- =============================================================================
+-- PRODUCTOS
+-- =============================================================================
+
 CREATE TABLE productos (
     id_producto             NUMBER GENERATED ALWAYS AS IDENTITY,
-    nombre                  VARCHAR2(75) NOT NULL,
-    precio_compra          NUMBER(9,2),
-    precio_venta           NUMBER(9,2),
-    cantidad               NUMBER NOT NULL,
-    estado                 VARCHAR2(25) NOT NULL,
+    nombre                   VARCHAR2(75) NOT NULL,
+    precio_compra           NUMBER(9,2),
+    precio_venta            NUMBER(9,2),
+    cantidad                NUMBER NOT NULL,
     categorias_id_categoria NUMBER NOT NULL,
+    estados_id_estado       NUMBER NOT NULL,
     CONSTRAINT productos_PK PRIMARY KEY (id_producto),
-    CONSTRAINT productos_categorias_FK FOREIGN KEY (categorias_id_categoria) REFERENCES categorias (id_categoria)
+    CONSTRAINT productos_categorias_FK FOREIGN KEY (categorias_id_categoria) REFERENCES categorias (id_categoria),
+    CONSTRAINT productos_estados_FK FOREIGN KEY (estados_id_estado) REFERENCES estados (id_estado)
 );
+
+-- =============================================================================
+-- CONTACTOS Y DIRECCIONES
+-- =============================================================================
 
 CREATE TABLE contactos_proveedores (
     id_contacto              NUMBER GENERATED ALWAYS AS IDENTITY,
@@ -116,7 +144,7 @@ CREATE TABLE contactos_proveedores (
 
 CREATE TABLE direcciones (
     id_direccion             NUMBER GENERATED ALWAYS AS IDENTITY,
-    otras_senas             VARCHAR2(250),
+    otras_senas              VARCHAR2(250),
     provincias_id_provincia  NUMBER NOT NULL,
     cantones_id_canton       NUMBER NOT NULL,
     distritos_id_distrito    NUMBER NOT NULL,
@@ -129,6 +157,10 @@ CREATE TABLE direcciones (
     CONSTRAINT direcciones_clientes_FK FOREIGN KEY (clientes_id_cliente) REFERENCES clientes (id_cliente),
     CONSTRAINT direcciones_proveedores_FK FOREIGN KEY (proveedores_id_proveedor) REFERENCES proveedores (id_proveedor)
 );
+
+-- =============================================================================
+-- COMPRAS Y VENTAS
+-- =============================================================================
 
 CREATE TABLE encabezados_compras (
     id_compra                NUMBER GENERATED ALWAYS AS IDENTITY,
@@ -157,7 +189,7 @@ CREATE TABLE detalles_compras (
     cantidad                      NUMBER NOT NULL,
     precio_unitario               NUMBER(9,2) NOT NULL,
     encabezados_compras_id_compra NUMBER NOT NULL,
-    productos_id_producto        NUMBER NOT NULL,
+    productos_id_producto         NUMBER NOT NULL,
     CONSTRAINT detalles_compras_PK PRIMARY KEY (id_detalle_compra),
     CONSTRAINT det_compr_encab_fk FOREIGN KEY (encabezados_compras_id_compra) REFERENCES encabezados_compras (id_compra),
     CONSTRAINT detalles_compras_productos_FK FOREIGN KEY (productos_id_producto) REFERENCES productos (id_producto)
@@ -186,6 +218,10 @@ CREATE TABLE pagos (
     CONSTRAINT pagos_encabezados_ventas_FK FOREIGN KEY (encabezados_ventas_id_venta) REFERENCES encabezados_ventas (id_venta)
 );
 
+-- =============================================================================
+-- GESTIÓN DE INVENTARIO
+-- =============================================================================
+
 CREATE TABLE gestion_stock (
     id_gestion_stock             NUMBER GENERATED ALWAYS AS IDENTITY,
     cantidad                     NUMBER NOT NULL,
@@ -197,14 +233,41 @@ CREATE TABLE gestion_stock (
     CONSTRAINT gestion_stock_tipo_gestion_FK FOREIGN KEY (tipo_gestion_id_tipo_gestion) REFERENCES tipo_gestion (id_tipo_gestion)
 );
 
+-- =============================================================================
+-- USUARIOS UNIFICADOS (cliente, cajero, inventario, admin)
+-- Vinculado a empleado O cliente según el rol
+-- =============================================================================
+
 CREATE TABLE usuarios (
-    id_usuario            NUMBER GENERATED ALWAYS AS IDENTITY,
-    username              VARCHAR2(50) NOT NULL,
-    password_encriptado   VARCHAR2(255) NOT NULL,
-    estado                VARCHAR2(25) NOT NULL,
-    rol                   VARCHAR2(25) NOT NULL,
-    empleados_id_empleado NUMBER NOT NULL,
+    id_usuario              NUMBER GENERATED ALWAYS AS IDENTITY,
+    username                VARCHAR2(50) NOT NULL,
+    password_encriptado     VARCHAR2(255) NOT NULL,
+    roles_id_rol            NUMBER NOT NULL,
+    estados_id_estado       NUMBER NOT NULL,
+    empleados_id_empleado   NUMBER,
+    clientes_id_cliente     NUMBER,
     CONSTRAINT usuarios_PK PRIMARY KEY (id_usuario),
-    CONSTRAINT usuarios_id_empleado_UN UNIQUE (empleados_id_empleado),
-    CONSTRAINT usuarios_empleados_FK FOREIGN KEY (empleados_id_empleado) REFERENCES empleados (id_empleado)
+    CONSTRAINT usuarios_username_UN UNIQUE (username),
+    CONSTRAINT usuarios_roles_FK FOREIGN KEY (roles_id_rol) REFERENCES roles (id_rol),
+    CONSTRAINT usuarios_estados_FK FOREIGN KEY (estados_id_estado) REFERENCES estados (id_estado),
+    CONSTRAINT usuarios_empleados_FK FOREIGN KEY (empleados_id_empleado) REFERENCES empleados (id_empleado),
+    CONSTRAINT usuarios_clientes_FK FOREIGN KEY (clientes_id_cliente) REFERENCES clientes (id_cliente),
+    CONSTRAINT usuarios_emp_o_cli_chk CHECK (
+        (empleados_id_empleado IS NOT NULL AND clientes_id_cliente IS NULL) OR
+        (empleados_id_empleado IS NULL AND clientes_id_cliente IS NOT NULL)
+    ),
+    CONSTRAINT usuarios_emp_un UNIQUE (empleados_id_empleado),
+    CONSTRAINT usuarios_cli_un UNIQUE (clientes_id_cliente)
 );
+
+-- =============================================================================
+-- DATOS INICIALES (roles y estados)
+-- =============================================================================
+
+INSERT INTO roles (nombre) VALUES ('admin');
+INSERT INTO roles (nombre) VALUES ('cajero');
+INSERT INTO roles (nombre) VALUES ('inventario');
+INSERT INTO roles (nombre) VALUES ('cliente');
+
+INSERT INTO estados (nombre) VALUES ('activo');
+INSERT INTO estados (nombre) VALUES ('inactivo');
