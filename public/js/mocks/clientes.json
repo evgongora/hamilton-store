@@ -1,1 +1,5 @@
-[]
+[
+  {"id": 1, "nombre": "Juan Carlos", "apellido": "Mora", "email": "juan@email.com", "telefono": "8888-1111", "fechaIngreso": "2024-02-01", "estado": "activo"},
+  {"id": 2, "nombre": "Mar\u00eda", "apellido": "Fern\u00e1ndez", "email": "maria@email.com", "telefono": "8888-2222", "fechaIngreso": "2024-03-15", "estado": "activo"},
+  {"id": 3, "nombre": "Cliente", "apellido": "Ocasional", "email": "ocasional@example.com", "telefono": "0000-0000", "fechaIngreso": "2024-01-01", "estado": "activo"}
+]

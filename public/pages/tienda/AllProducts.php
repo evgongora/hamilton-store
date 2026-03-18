@@ -25,36 +25,12 @@
 
         <section class="py-5">
             <div class="container px-4 px-lg-5">
-                <div class="row g-4">
-                    <div class="col-md-4">
-                        <div class="card h-100">
-                            <div class="card-body">
-                                <h2 class="h5">Celulares</h2>
-                                <p class="text-muted mb-0">Modelos de entrada, gama media y flagship.</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card h-100">
-                            <div class="card-body">
-                                <h2 class="h5">Componentes PC</h2>
-                                <p class="text-muted mb-0">CPU, GPU, RAM, almacenamiento y m&aacute;s.</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card h-100">
-                            <div class="card-body">
-                                <h2 class="h5">Perif&eacute;ricos</h2>
-                                <p class="text-muted mb-0">Teclados, mouse, audio y accesorios gamer.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <div id="productsGrid" class="row gx-4 gx-lg-5 row-cols-2 row-cols-md-3 row-cols-xl-4"></div>
             </div>
         </section>
 
         <?php MostrarFooter(); ?>
         <?php MostrarJS(); ?>
+        <script>if (window.TiendaProductos) window.TiendaProductos.renderGrid('productsGrid');</script>
     </body>
 </html>
