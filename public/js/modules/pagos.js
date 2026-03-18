@@ -1,10 +1,12 @@
 /**
  * pagos.js - Registrar pagos y asociarlos a ventas (mock/localStorage)
+ * Estructura alineada con BD: pagos.metodosPagoIdMetodoPago
  */
 (function () {
   'use strict';
 
   const STORAGE_KEY = 'hamilton_ventas';
+  const basePath = (document.body.dataset.basePath || '/hamilton-store/public').replace(/\/$/, '');
 
   function getVentas() {
     return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
@@ -18,9 +20,11 @@
     return '₡' + Number(n).toLocaleString('es-CR');
   }
 
-  function formatFecha(iso) {
-    const d = new Date(iso);
-    return d.toLocaleDateString('es-CR') + ' ' + d.toLocaleTimeString('es-CR', { hour: '2-digit', minute: '2-digit' });
+  function getClienteNombre(venta) {
+    if (venta.clienteNombre) return venta.clienteNombre;
+    if (venta.clientesIdCliente) return 'Cliente #' + venta.clientesIdCliente;
+    if (venta.clienteId) return 'Cliente #' + venta.clienteId;
+    return 'Sin cliente';
   }
 
   function getPagado(venta) {
@@ -41,9 +45,27 @@
       if (pend <= 0) return;
       const opt = document.createElement('option');
       opt.value = v.id;
-      opt.textContent = `#${v.id} - ${v.clienteNombre || 'Sin cliente'} - ${formatMoney(v.total)} (pend: ${formatMoney(pend)})`;
+      opt.textContent = `#${v.id} - ${getClienteNombre(v)} - ${formatMoney(v.total)} (pend: ${formatMoney(pend)})`;
       sel.appendChild(opt);
     });
+  }
+
+  function loadMetodosPago() {
+    const sel = document.getElementById('metodoPago');
+    if (!sel) return Promise.resolve();
+    return fetch(basePath + '/js/mocks/metodos_pago.json')
+      .then(r => r.ok ? r.json() : [])
+      .then(data => {
+        sel.innerHTML = '<option value="">-- Método --</option>';
+        data.forEach(m => {
+          const opt = document.createElement('option');
+          opt.value = m.id;
+          opt.textContent = m.nombre;
+          sel.appendChild(opt);
+        });
+        return data;
+      })
+      .catch(() => {});
   }
 
   function updateVentaDetalle(venta) {
@@ -68,13 +90,17 @@
 
   function registrarPago() {
     const ventaId = document.getElementById('ventaSelect').value;
-    const metodo = document.getElementById('metodoPago').value;
+    const metodoPagoId = document.getElementById('metodoPago').value;
     const montoStr = document.getElementById('montoPago').value;
 
     if (!ventaId) return;
     const monto = parseFloat(montoStr);
     if (isNaN(monto) || monto <= 0) {
       alert('Ingrese un monto v&aacute;lido');
+      return;
+    }
+    if (!metodoPagoId) {
+      alert('Seleccione un m&eacute;todo de pago');
       return;
     }
 
@@ -95,8 +121,8 @@
     venta.pagos = venta.pagos || [];
     venta.pagos.push({
       monto: monto,
-      metodo: metodo,
-      fecha: new Date().toISOString()
+      fechaPago: new Date().toISOString(),
+      metodosPagoIdMetodoPago: parseInt(metodoPagoId, 10)
     });
     saveVentas(ventas);
 
@@ -114,9 +140,10 @@
   }
 
   document.addEventListener('DOMContentLoaded', function () {
+    loadMetodosPago().then(() => {});
     renderVentaSelect();
 
-    document.getElementById('ventaSelect').addEventListener('change', function () {
+    document.getElementById('ventaSelect')?.addEventListener('change', function () {
       const ventaId = this.value;
       if (!ventaId) {
         updateVentaDetalle(null);
@@ -127,6 +154,6 @@
       updateVentaDetalle(venta || null);
     });
 
-    document.getElementById('btnRegistrarPago').addEventListener('click', registrarPago);
+    document.getElementById('btnRegistrarPago')?.addEventListener('click', registrarPago);
   });
 })();

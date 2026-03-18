@@ -19,3 +19,7 @@ public/
 - Login mock: usuario + rol (admin/cajero/inventario)
 - `auth_guard.php`: `requireLogin()`, `requireRole()`
 - Sesión: `$_SESSION['user']`, `$_SESSION['role']`
+
+## Documentación de módulos
+
+Ver [modulos-sistema.md](./modulos-sistema.md) para la documentación detallada de Ventas, Productos, Clientes, Pagos, Dashboard y Tienda pública.

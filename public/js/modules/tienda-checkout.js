@@ -1,13 +1,33 @@
 /**
- * tienda-checkout.js - Mock pasarela de pagos para tienda (proyecto U)
+ * tienda-checkout.js - Mock pasarela de pagos para tienda
+ * Estructura alineada con BD: encabezados_ventas + detalles_ventas + pagos
  */
 (function () {
   'use strict';
 
   const STORAGE_VENTAS = 'hamilton_ventas';
+  const basePath = '/hamilton-store/public';
 
   function formatMoney(n) {
     return '₡' + Number(n).toLocaleString('es-CR');
+  }
+
+  function loadMetodosPago() {
+    const sel = document.getElementById('metodoPago');
+    if (!sel) return Promise.resolve();
+    return fetch(basePath + '/js/mocks/metodos_pago.json')
+      .then(r => r.ok ? r.json() : [])
+      .then(data => {
+        sel.innerHTML = '';
+        data.forEach(m => {
+          const opt = document.createElement('option');
+          opt.value = m.id;
+          opt.textContent = m.nombre;
+          sel.appendChild(opt);
+        });
+        return data;
+      })
+      .catch(() => []);
   }
 
   function render() {
@@ -85,24 +105,29 @@
       return;
     }
 
-    const metodo = document.getElementById('metodoPago')?.value || 'tarjeta';
-    const total = window.TiendaCarrito.getTotal();
+    const metodoPagoId = document.getElementById('metodoPago')?.value;
+    if (!metodoPagoId) {
+      alert('Seleccione un m\u00e9todo de pago');
+      return;
+    }
 
+    const total = window.TiendaCarrito.getTotal();
     const venta = {
       id: Date.now(),
       fecha: new Date().toISOString(),
-      origen: 'tienda',
-      clienteId: null,
+      total,
+      clientesIdCliente: null,
       clienteNombre: 'Cliente tienda',
+      empleadosIdEmpleado: 1,
+      origen: 'tienda',
       items: items.map(i => ({
-        productoId: i.productoId,
+        productosIdProducto: i.productoId,
         nombre: i.nombre,
         cantidad: i.cantidad,
         precioUnitario: i.precioVenta,
         subtotal: i.cantidad * i.precioVenta
       })),
-      total: total,
-      pagos: [{ monto: total, metodo: metodo, fecha: new Date().toISOString() }]
+      pagos: [{ monto: total, fechaPago: new Date().toISOString(), metodosPagoIdMetodoPago: parseInt(metodoPagoId, 10) }]
     };
 
     const ventas = JSON.parse(localStorage.getItem(STORAGE_VENTAS) || '[]');
@@ -114,12 +139,15 @@
   }
 
   document.addEventListener('DOMContentLoaded', function () {
+    loadMetodosPago().then(function () {
+      document.getElementById('metodoPago')?.dispatchEvent(new Event('change'));
+    });
     render();
 
     document.getElementById('metodoPago')?.addEventListener('change', function () {
-      const v = this.value;
+      const v = parseInt(this.value, 10);
       const tarjeta = document.getElementById('mockTarjeta');
-      if (tarjeta) tarjeta.style.display = v === 'tarjeta' ? 'block' : 'none';
+      if (tarjeta) tarjeta.style.display = (v === 3) ? 'block' : 'none';
     });
 
     document.getElementById('btnPagar')?.addEventListener('click', function () {

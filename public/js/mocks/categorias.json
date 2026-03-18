@@ -1,0 +1,11 @@
+[
+  {"id": 1, "nombre": "Tarjetas gr\u00e1ficas"},
+  {"id": 2, "nombre": "Procesadores"},
+  {"id": 3, "nombre": "Almacenamiento"},
+  {"id": 4, "nombre": "Monitores"},
+  {"id": 5, "nombre": "Perif\u00e9ricos"},
+  {"id": 6, "nombre": "Memoria RAM"},
+  {"id": 7, "nombre": "Fuentes de poder"},
+  {"id": 8, "nombre": "Laptops"},
+  {"id": 9, "nombre": "Audio"}
+]

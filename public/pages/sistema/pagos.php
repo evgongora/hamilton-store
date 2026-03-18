@@ -57,10 +57,7 @@ $role = $_SESSION['role'] ?? '';
                             <div class="mb-3">
                                 <label for="metodoPago" class="form-label">M&eacute;todo de pago</label>
                                 <select id="metodoPago" class="form-select">
-                                    <option value="efectivo">Efectivo</option>
-                                    <option value="sinpe">SINPE</option>
-                                    <option value="tarjeta">Tarjeta</option>
-                                    <option value="transferencia">Transferencia</option>
+                                    <option value="">-- Cargando... --</option>
                                 </select>
                             </div>
                             <div class="mb-3">

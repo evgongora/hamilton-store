@@ -1,12 +1,12 @@
 [
-  {"id": 1, "nombre": "Tarjeta gr\u00e1fica RTX 4070", "precioCompra": 550, "precioVenta": 649, "stock": 10},
-  {"id": 2, "nombre": "Procesador Intel i7 14700K", "precioCompra": 350, "precioVenta": 429, "stock": 8},
-  {"id": 3, "nombre": "SSD NVMe 1TB Gen4", "precioCompra": 70, "precioVenta": 89, "stock": 25},
-  {"id": 4, "nombre": "Monitor 27\" 144Hz IPS", "precioCompra": 190, "precioVenta": 239, "stock": 12},
-  {"id": 5, "nombre": "Teclado mec\u00e1nico RGB", "precioCompra": 55, "precioVenta": 79, "stock": 30},
-  {"id": 6, "nombre": "Mouse inal\u00e1mbrico gamer", "precioCompra": 35, "precioVenta": 49, "stock": 40},
-  {"id": 7, "nombre": "Memoria RAM 32GB DDR5", "precioCompra": 120, "precioVenta": 149, "stock": 15},
-  {"id": 8, "nombre": "Fuente de poder 750W", "precioCompra": 85, "precioVenta": 109, "stock": 18},
-  {"id": 9, "nombre": "Laptop gaming 16\"", "precioCompra": 1100, "precioVenta": 1329, "stock": 5},
-  {"id": 10, "nombre": "Aud\u00edfonos pro con micr\u00f3fono", "precioCompra": 75, "precioVenta": 99, "stock": 20}
+  {"id": 1, "nombre": "Tarjeta gr\u00e1fica RTX 4070", "precioCompra": 550, "precioVenta": 649, "cantidad": 10, "estado": "activo", "categoriasIdCategoria": 1},
+  {"id": 2, "nombre": "Procesador Intel i7 14700K", "precioCompra": 350, "precioVenta": 429, "cantidad": 8, "estado": "activo", "categoriasIdCategoria": 2},
+  {"id": 3, "nombre": "SSD NVMe 1TB Gen4", "precioCompra": 70, "precioVenta": 89, "cantidad": 25, "estado": "activo", "categoriasIdCategoria": 3},
+  {"id": 4, "nombre": "Monitor 27\" 144Hz IPS", "precioCompra": 190, "precioVenta": 239, "cantidad": 12, "estado": "activo", "categoriasIdCategoria": 4},
+  {"id": 5, "nombre": "Teclado mec\u00e1nico RGB", "precioCompra": 55, "precioVenta": 79, "cantidad": 30, "estado": "activo", "categoriasIdCategoria": 5},
+  {"id": 6, "nombre": "Mouse inal\u00e1mbrico gamer", "precioCompra": 35, "precioVenta": 49, "cantidad": 40, "estado": "activo", "categoriasIdCategoria": 5},
+  {"id": 7, "nombre": "Memoria RAM 32GB DDR5", "precioCompra": 120, "precioVenta": 149, "cantidad": 15, "estado": "activo", "categoriasIdCategoria": 6},
+  {"id": 8, "nombre": "Fuente de poder 750W", "precioCompra": 85, "precioVenta": 109, "cantidad": 18, "estado": "activo", "categoriasIdCategoria": 7},
+  {"id": 9, "nombre": "Laptop gaming 16\"", "precioCompra": 1100, "precioVenta": 1329, "cantidad": 5, "estado": "activo", "categoriasIdCategoria": 8},
+  {"id": 10, "nombre": "Aud\u00edfonos pro con micr\u00f3fono", "precioCompra": 75, "precioVenta": 99, "cantidad": 20, "estado": "activo", "categoriasIdCategoria": 9}
 ]

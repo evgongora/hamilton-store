@@ -66,9 +66,7 @@
                             <div class="mb-4">
                                 <label class="form-label">M&eacute;todo de pago</label>
                                 <select id="metodoPago" class="form-select">
-                                    <option value="tarjeta">Tarjeta de cr&eacute;dito/d&eacute;bito</option>
-                                    <option value="sinpe">SINPE M&oacute;vil</option>
-                                    <option value="efectivo">Efectivo (entrega)</option>
+                                    <option value="">-- Cargando... --</option>
                                 </select>
                             </div>
                             <div id="mockTarjeta" class="mb-3">

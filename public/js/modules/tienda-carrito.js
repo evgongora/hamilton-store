@@ -20,16 +20,17 @@
 
     add(producto, cantidad) {
       const qty = Math.max(1, parseInt(cantidad, 10) || 1);
+      const maxStock = producto.cantidad ?? 999;
       let items = this.getItems();
       const found = items.find(i => i.productoId === producto.id);
       if (found) {
-        found.cantidad += qty;
+        found.cantidad = Math.min(found.cantidad + qty, maxStock);
       } else {
         items.push({
           productoId: producto.id,
           nombre: producto.nombre,
           precioVenta: producto.precioVenta,
-          cantidad: qty
+          cantidad: Math.min(qty, maxStock)
         });
       }
       this.save(items);

@@ -18,15 +18,17 @@
 |---------------|--------|---------|--------|
 | Usuarios y Roles | Usuarios | `usuarios.php` | Placeholder |
 | Empleados | Empleados | `empleados.php` | Placeholder |
-| Clientes | Clientes | `clientes.php` | Placeholder |
+| Clientes | Clientes | `clientes.php` | Placeholder (mocks en `clientes.json`) |
 | Direcciones y Ubicación Geográfica | Ubicaciones | `ubicaciones.php` | Placeholder (provincias, cantones, distritos) |
-| Productos y Categorías | Productos | `productos.php` | Placeholder (incluir categorías) |
+| Productos y Categorías | Productos | `productos.php` | Placeholder (mocks en `productos.json`) |
 | Proveedores y Contactos | Proveedores | `proveedores.php` | Placeholder |
 | Compras | Compras | `compras.php` | Placeholder |
-| Ventas | Ventas | `ventas.php` | Placeholder |
-| Pagos y Métodos de Pago | Pagos | `pagos.php` | Placeholder |
+| Ventas | Ventas | `ventas.php` | **Implementado** (Punto de venta mock) |
+| Pagos y Métodos de Pago | Pagos | `pagos.php` | **Implementado** (registrar pagos mock) |
 | Control de Inventario | Inventario | `inventario.php` | Placeholder |
 | Reportes y Consultas | Reportes | `reportes.php` | Placeholder |
+
+Ver documentación detallada en `docs/modulos-sistema.md`.
 
 ---
 

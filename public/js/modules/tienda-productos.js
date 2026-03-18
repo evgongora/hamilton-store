@@ -22,7 +22,7 @@
     const badge = opt?.badge || '';
     const badgeClass = opt?.badgeClass || 'bg-dark';
     const hasOferta = opt?.precioAntes;
-    const maxStock = Math.max(1, p.stock || 99);
+    const maxStock = Math.max(1, p.cantidad ?? 99);
     return `
       <div class="col mb-5" data-product-id="${p.id}">
         <div class="card h-100">
@@ -75,7 +75,7 @@
       const btnPlus = stepper.querySelector('.btn-plus');
       const addBtn = col?.querySelector('.add-to-cart-btn');
 
-      const max = p.stock || 99;
+      const max = p.cantidad ?? 99;
 
       function updateQty(val) {
         let n = parseInt(qtyInput.value, 10) || 1;

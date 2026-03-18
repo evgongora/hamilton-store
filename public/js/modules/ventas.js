@@ -36,7 +36,8 @@
       clientes.forEach(c => {
         const opt = document.createElement('option');
         opt.value = c.id;
-        opt.textContent = c.nombre + (c.cedula ? ' (' + c.cedula + ')' : '');
+        const nombreCompleto = [c.nombre, c.apellido].filter(Boolean).join(' ');
+        opt.textContent = nombreCompleto;
         sel.appendChild(opt);
       });
       return clientes;
@@ -51,17 +52,19 @@
 
   function addToCart(producto, cantidad) {
     const qty = Math.max(1, parseInt(cantidad, 10) || 1);
+    const maxStock = producto.cantidad ?? 999;
     const found = carrito.find(i => i.productoId === producto.id);
     if (found) {
-      found.cantidad += qty;
+      found.cantidad = Math.min(found.cantidad + qty, maxStock);
       found.subtotal = found.cantidad * found.precioUnitario;
     } else {
+      const finalQty = Math.min(qty, maxStock);
       carrito.push({
         productoId: producto.id,
         nombre: producto.nombre,
-        cantidad: qty,
+        cantidad: finalQty,
         precioUnitario: producto.precioVenta,
-        subtotal: qty * producto.precioVenta
+        subtotal: finalQty * producto.precioVenta
       });
     }
     renderCart();
@@ -149,21 +152,24 @@
   function confirmarVenta() {
     const clienteId = document.getElementById('clienteSelect').value;
     const cliente = clientes.find(c => String(c.id) === clienteId);
-    const clienteNombre = cliente ? cliente.nombre : 'Sin asignar';
+    const clienteNombre = cliente ? [cliente.nombre, cliente.apellido].filter(Boolean).join(' ') : 'Sin asignar';
 
+    const total = getTotal();
     const venta = {
       id: Date.now(),
       fecha: new Date().toISOString(),
-      clienteId: clienteId ? parseInt(clienteId, 10) : null,
+      total,
+      clientesIdCliente: clienteId ? parseInt(clienteId, 10) : null,
       clienteNombre: clienteNombre,
+      empleadosIdEmpleado: 1,
+      origen: 'sistema',
       items: carrito.map(i => ({
-        productoId: i.productoId,
+        productosIdProducto: i.productoId,
         nombre: i.nombre,
         cantidad: i.cantidad,
         precioUnitario: i.precioUnitario,
         subtotal: i.subtotal
       })),
-      total: getTotal(),
       pagos: []
     };
 
@@ -191,10 +197,11 @@
       const a = document.createElement('a');
       a.href = '#';
       a.className = 'list-group-item list-group-item-action d-flex justify-content-between align-items-center';
+      const maxStock = p.cantidad ?? 99;
       a.innerHTML = `
         <span>${escapeHtml(p.nombre)} <small class="text-muted">${formatMoney(p.precioVenta)}</small></span>
         <div class="input-group input-group-sm" style="width: 120px;">
-          <input type="number" class="form-control qty-input" value="1" min="1" max="${p.stock}" data-id="${p.id}">
+          <input type="number" class="form-control qty-input" value="1" min="1" max="${maxStock}" data-id="${p.id}">
           <button type="button" class="btn btn-primary add-cart-btn" data-id="${p.id}">Agregar</button>
         </div>
       `;
