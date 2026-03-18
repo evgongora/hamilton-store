@@ -1,12 +1,12 @@
 [
-  {"id": 1, "nombre": "Tarjeta gr\u00e1fica RTX 4070", "precioCompra": 550, "precioVenta": 649, "cantidad": 10, "estadosIdEstado": 1, "categoriasIdCategoria": 1},
-  {"id": 2, "nombre": "Procesador Intel i7 14700K", "precioCompra": 350, "precioVenta": 429, "cantidad": 8, "estadosIdEstado": 1, "categoriasIdCategoria": 2},
-  {"id": 3, "nombre": "SSD NVMe 1TB Gen4", "precioCompra": 70, "precioVenta": 89, "cantidad": 25, "estadosIdEstado": 1, "categoriasIdCategoria": 3},
-  {"id": 4, "nombre": "Monitor 27\" 144Hz IPS", "precioCompra": 190, "precioVenta": 239, "cantidad": 12, "estadosIdEstado": 1, "categoriasIdCategoria": 4},
-  {"id": 5, "nombre": "Teclado mec\u00e1nico RGB", "precioCompra": 55, "precioVenta": 79, "cantidad": 30, "estadosIdEstado": 1, "categoriasIdCategoria": 5},
-  {"id": 6, "nombre": "Mouse inal\u00e1mbrico gamer", "precioCompra": 35, "precioVenta": 49, "cantidad": 40, "estadosIdEstado": 1, "categoriasIdCategoria": 5},
-  {"id": 7, "nombre": "Memoria RAM 32GB DDR5", "precioCompra": 120, "precioVenta": 149, "cantidad": 15, "estadosIdEstado": 1, "categoriasIdCategoria": 6},
-  {"id": 8, "nombre": "Fuente de poder 750W", "precioCompra": 85, "precioVenta": 109, "cantidad": 18, "estadosIdEstado": 1, "categoriasIdCategoria": 7},
-  {"id": 9, "nombre": "Laptop gaming 16\"", "precioCompra": 1100, "precioVenta": 1329, "cantidad": 5, "estadosIdEstado": 1, "categoriasIdCategoria": 8},
-  {"id": 10, "nombre": "Aud\u00edfonos pro con micr\u00f3fono", "precioCompra": 75, "precioVenta": 99, "cantidad": 20, "estadosIdEstado": 1, "categoriasIdCategoria": 9}
+  {"id": 1, "nombre": "Tarjeta gr\u00e1fica RTX 4070", "precioCompra": 550000, "precioVenta": 649000, "cantidad": 10, "estadosIdEstado": 1, "categoriasIdCategoria": 1},
+  {"id": 2, "nombre": "Procesador Intel i7 14700K", "precioCompra": 35000, "precioVenta": 42900, "cantidad": 8, "estadosIdEstado": 1, "categoriasIdCategoria": 2},
+  {"id": 3, "nombre": "SSD NVMe 1TB Gen4", "precioCompra": 70000, "precioVenta": 89000, "cantidad": 25, "estadosIdEstado": 1, "categoriasIdCategoria": 3},
+  {"id": 4, "nombre": "Monitor 27\" 144Hz IPS", "precioCompra": 190000, "precioVenta": 239000, "cantidad": 12, "estadosIdEstado": 1, "categoriasIdCategoria": 4},
+  {"id": 5, "nombre": "Teclado mec\u00e1nico RGB", "precioCompra": 55000, "precioVenta": 79000, "cantidad": 30, "estadosIdEstado": 1, "categoriasIdCategoria": 5},
+  {"id": 6, "nombre": "Mouse inal\u00e1mbrico gamer", "precioCompra": 35000, "precioVenta": 49000, "cantidad": 40, "estadosIdEstado": 1, "categoriasIdCategoria": 5},
+  {"id": 7, "nombre": "Memoria RAM 32GB DDR5", "precioCompra": 120000, "precioVenta": 149000, "cantidad": 15, "estadosIdEstado": 1, "categoriasIdCategoria": 6},
+  {"id": 8, "nombre": "Fuente de poder 750W", "precioCompra": 38500, "precioVenta": 48900, "cantidad": 18, "estadosIdEstado": 1, "categoriasIdCategoria": 7},
+  {"id": 9, "nombre": "Laptop gaming 16\"", "precioCompra": 190000, "precioVenta": 257700, "cantidad": 5, "estadosIdEstado": 1, "categoriasIdCategoria": 8},
+  {"id": 10, "nombre": "Aud\u00edfonos pro con micr\u00f3fono", "precioCompra": 12000, "precioVenta": 18900, "cantidad": 20, "estadosIdEstado": 1, "categoriasIdCategoria": 9}
 ]

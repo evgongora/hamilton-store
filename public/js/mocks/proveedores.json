@@ -1,1 +1,72 @@
-[]
+[
+  {
+    "id": 1,
+    "nombre": "TechSource CR",
+    "contacto": "Andrea Solano",
+    "telefono": "2222-4101",
+    "email": "andrea.solano@techsourcecr.com"
+  },
+  {
+    "id": 2,
+    "nombre": "Distribuidora Nova",
+    "contacto": "Luis Mena",
+    "telefono": "2256-1880",
+    "email": "lmena@distribuidoranova.com"
+  },
+  {
+    "id": 3,
+    "nombre": "CompuGlobal Parts",
+    "contacto": "Mariela Quesada",
+    "telefono": "2430-5521",
+    "email": "mquesada@compuglobalparts.com"
+  },
+  {
+    "id": 4,
+    "nombre": "Importadora Silicon",
+    "contacto": "Jose Vargas",
+    "telefono": "2291-7743",
+    "email": "jvargas@importadorasilicon.com"
+  },
+  {
+    "id": 5,
+    "nombre": "RedPoint Supplies",
+    "contacto": "Camila Herrera",
+    "telefono": "4001-2205",
+    "email": "camila.herrera@redpointsupplies.com"
+  },
+  {
+    "id": 6,
+    "nombre": "Electronica del Valle",
+    "contacto": "Pablo Arce",
+    "telefono": "2460-9034",
+    "email": "parce@electronicadelvalle.com"
+  },
+  {
+    "id": 7,
+    "nombre": "LogiTech Imports",
+    "contacto": "Fernanda Rojas",
+    "telefono": "2288-6112",
+    "email": "fernanda.rojas@logitechimports.com"
+  },
+  {
+    "id": 8,
+    "nombre": "Master Components",
+    "contacto": "Daniel Urena",
+    "telefono": "2522-3490",
+    "email": "durena@mastercomponents.com"
+  },
+  {
+    "id": 9,
+    "nombre": "Digital Hub Wholesale",
+    "contacto": "Valeria Campos",
+    "telefono": "2267-1184",
+    "email": "vcampos@digitalhubwholesale.com"
+  },
+  {
+    "id": 10,
+    "nombre": "MicroNet Trading",
+    "contacto": "Esteban Mora",
+    "telefono": "2234-9908",
+    "email": "esteban.mora@micronettrading.com"
+  }
+]
