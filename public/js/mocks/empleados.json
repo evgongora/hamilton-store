@@ -1,4 +1,4 @@
 [
-  {"id": 1, "nombre": "Carlos", "apellido": "Rodr\u00edguez", "puesto": "Cajero", "email": "carlos@hamiltonstore.com", "fechaIngreso": "2024-01-15", "estado": "activo"},
-  {"id": 2, "nombre": "Mar\u00eda", "apellido": "Soto", "puesto": "Cajero", "email": "maria@hamiltonstore.com", "fechaIngreso": "2024-03-01", "estado": "activo"}
+  {"id": 1, "nombre": "Carlos", "apellido": "Rodr\u00edguez", "puesto": "Cajero", "email": "carlos@hamiltonstore.com", "fechaIngreso": "2024-01-15", "estadosIdEstado": 1},
+  {"id": 2, "nombre": "Mar\u00eda", "apellido": "Soto", "puesto": "Cajero", "email": "maria@hamiltonstore.com", "fechaIngreso": "2024-03-01", "estadosIdEstado": 1}
 ]

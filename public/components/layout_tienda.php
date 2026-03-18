@@ -11,6 +11,28 @@ function MostrarCSS() {
     <link href="' . $base . '/css/styles.css" rel="stylesheet" />';
 }
 
+function layout_tienda_cliente_logueado() {
+    return !empty($_COOKIE['hamilton_cliente']) || (!empty($_SESSION['user']) && ($_SESSION['role'] ?? '') === 'cliente');
+}
+
+function layout_tienda_login_html($base) {
+    $logoutUrl = str_replace('/public', '/backend', $base) . '/api/auth_logout.php';
+    if (!empty($_SESSION['user'])) {
+        $nombre = htmlspecialchars($_SESSION['user']);
+        $role = $_SESSION['role'] ?? '';
+        $dashboard = in_array($role, ['admin', 'cajero', 'inventario'], true)
+            ? '<a class="btn btn-outline-primary btn-sm me-2" href="' . $base . '/pages/sistema/dashboard.php">Dashboard</a>'
+            : '';
+        return '<span class="text-muted me-2 small">' . $nombre . '</span>' . $dashboard . '<a class="btn btn-outline-secondary btn-sm" href="' . $logoutUrl . '">Cerrar sesión</a>';
+    }
+    if (!empty($_COOKIE['hamilton_cliente'])) {
+        $data = @json_decode($_COOKIE['hamilton_cliente'], true);
+        $nombre = isset($data['nombre'], $data['apellido']) ? htmlspecialchars($data['nombre'] . ' ' . $data['apellido']) : 'Cliente';
+        return '<span class="text-muted me-2 small">Hola, ' . $nombre . '</span><a class="btn btn-outline-secondary btn-sm" href="' . $logoutUrl . '">Cerrar sesión</a>';
+    }
+    return '<a class="btn btn-outline-secondary btn-sm me-2" href="' . $base . '/pages/tienda/registro.php">Crear cuenta</a><a class="btn btn-outline-secondary navbar-login-btn" href="' . $base . '/pages/auth/login.php">Iniciar sesión</a>';
+}
+
 function MostrarNavbar() {
     $base = '/hamilton-store/public';
     echo '<nav class="navbar navbar-expand-lg navbar-light bg-light">
@@ -36,20 +58,15 @@ function MostrarNavbar() {
                 <form class="d-flex navbar-search-form" role="search" onsubmit="return false;">
                     <input class="form-control" id="productSearchInput" type="search" placeholder="Buscar productos" aria-label="Buscar productos" />
                 </form>
-                <div class="navbar-right-actions">
-                    <a class="btn btn-outline-dark navbar-cart-form" href="' . $base . '/pages/tienda/checkout.php">
+                <div class="navbar-right-actions">' .
+                    (layout_tienda_cliente_logueado()
+                        ? '<a class="btn btn-outline-dark navbar-cart-form" href="' . $base . '/pages/tienda/checkout.php">
                         <i class="bi-cart-fill me-1"></i>
                         Carrito
                         <span id="cartBadge" class="badge bg-dark text-white ms-1 rounded-pill">0</span>
-                    </a>' .
-                    (empty($_SESSION['user'])
-                        ? '<a class="btn btn-outline-secondary navbar-login-btn" href="' . $base . '/pages/auth/login.php">Iniciar sesión</a>'
-                        : ('<span class="text-muted me-2 small">' . htmlspecialchars($_SESSION['user']) . '</span>' .
-                          (in_array($_SESSION['role'] ?? '', ['admin', 'cajero', 'inventario'], true)
-                              ? '<a class="btn btn-outline-primary btn-sm me-2" href="' . $base . '/pages/sistema/dashboard.php">Dashboard</a>'
-                              : '') .
-                          '<a class="btn btn-outline-secondary btn-sm" href="' . str_replace('/public', '/backend', $base) . '/api/auth_logout.php">Cerrar sesión</a>')
-                    ) . '
+                    </a>'
+                        : '') .
+                    layout_tienda_login_html($base) . '
                 </div>
             </div>
         </div>
