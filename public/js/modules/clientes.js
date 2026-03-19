@@ -7,6 +7,8 @@
 
   const STORAGE_KEY = 'hamilton_clientes';
   const basePath = (document.body.dataset.basePath || '/hamilton-store/public').replace(/\/$/, '');
+  const currentRole = String(document.body.dataset.currentRole || '').trim().toLowerCase();
+  const isAdmin = currentRole === 'admin';
 
   let ubicaciones = { provincias: [], cantones: [], distritos: [] };
   let estados = [];
@@ -113,20 +115,22 @@
         <td>${escapeHtml(c.telefono)}</td>
         <td class="small">${escapeHtml(getUbicacionTexto(c))}</td>
         <td><span class="badge ${c.estadosIdEstado === 1 ? 'bg-success' : 'bg-secondary'}">${escapeHtml(getEstadoNombre(c.estadosIdEstado))}</span></td>
-        <td class="text-end">
+        ${isAdmin ? `<td class="text-end">
           <button type="button" class="btn btn-outline-primary btn-sm me-1 btn-editar" data-id="${c.id}" title="Editar"><i class="bi bi-pencil"></i></button>
           <button type="button" class="btn btn-outline-danger btn-sm btn-eliminar" data-id="${c.id}" title="Eliminar"><i class="bi bi-trash"></i></button>
-        </td>
+        </td>` : ''}
       `;
       tbody.appendChild(tr);
     });
 
-    tbody.querySelectorAll('.btn-editar').forEach(btn => {
-      btn.addEventListener('click', () => abrirModalEditar(parseInt(btn.dataset.id, 10)));
-    });
-    tbody.querySelectorAll('.btn-eliminar').forEach(btn => {
-      btn.addEventListener('click', () => eliminarCliente(parseInt(btn.dataset.id, 10)));
-    });
+    if (isAdmin) {
+      tbody.querySelectorAll('.btn-editar').forEach(btn => {
+        btn.addEventListener('click', () => abrirModalEditar(parseInt(btn.dataset.id, 10)));
+      });
+      tbody.querySelectorAll('.btn-eliminar').forEach(btn => {
+        btn.addEventListener('click', () => eliminarCliente(parseInt(btn.dataset.id, 10)));
+      });
+    }
   }
 
   function llenarEstadosSelect() {
@@ -209,6 +213,7 @@
   }
 
   function abrirModalEditar(id) {
+    if (!isAdmin) return;
     const clientes = getClientes();
     const c = clientes.find(x => x.id === id);
     if (!c) return;
@@ -263,6 +268,7 @@
     const existingId = idEl.value ? parseInt(idEl.value, 10) : null;
 
     if (existingId) {
+      if (!isAdmin) return;
       const idx = clientes.findIndex(x => x.id === existingId);
       if (idx >= 0) {
         clientes[idx] = { ...clientes[idx], nombre, apellido, email, telefono, fechaIngreso, estadosIdEstado, direccion };
@@ -289,6 +295,7 @@
   }
 
   function eliminarCliente(id) {
+    if (!isAdmin) return;
     if (!confirm('¿Eliminar este cliente?')) return;
     const clientes = getClientes().filter(c => c.id !== id);
     saveClientes(clientes);

@@ -13,7 +13,7 @@
       return;
     }
 
-    var basePath = app.getAttribute('data-base-path') || '';
+    var basePath = (document.body.dataset.basePath || '').replace(/\/$/, '');
     var productsMockUrl = basePath + '/js/mocks/productos.json';
     var categoriesMockUrl = basePath + '/js/mocks/categorias.json';
 
@@ -21,14 +21,14 @@
     var categoryForm = document.getElementById('category-form');
     var tableHead = document.getElementById('catalog-table-head');
     var tableBody = document.getElementById('catalog-table-body');
+    var countCell = document.getElementById('catalog-count');
     var emptyState = document.getElementById('catalog-empty-state');
-    var searchInput = document.getElementById('catalog-search-input');
+    var emptyIcon = document.getElementById('catalog-empty-icon');
+    var emptyText = document.getElementById('catalog-empty-text');
     var newTrigger = document.getElementById('catalog-new-trigger');
     var newLabel = document.getElementById('catalog-new-label');
     var switchButtons = Array.prototype.slice.call(document.querySelectorAll('.catalog-switch'));
-    var pageTitle = document.getElementById('catalog-page-title');
     var listTitle = document.getElementById('catalog-list-title');
-    var listDescription = document.getElementById('catalog-list-description');
     var formTitle = document.getElementById('catalog-form-title');
     var formDescription = document.getElementById('catalog-form-description');
     var formBadge = document.getElementById('catalog-form-badge');
@@ -64,7 +64,6 @@
 
     var state = {
       view: 'products',
-      query: '',
       products: [],
       categories: [],
       editingProductId: null,
@@ -78,7 +77,6 @@
         if (!raw) {
           return null;
         }
-
         var parsed = JSON.parse(raw);
         return Array.isArray(parsed) ? parsed : null;
       } catch (error) {
@@ -91,13 +89,22 @@
     }
 
     function normalizeProduct(product) {
+      var rawEstado = product.estadosIdEstado != null ? product.estadosIdEstado : product.estado;
+      var estado = 'activo';
+
+      if (typeof rawEstado === 'number') {
+        estado = rawEstado === 1 ? 'activo' : 'inactivo';
+      } else if (String(rawEstado || '').trim()) {
+        estado = String(rawEstado).trim().toLowerCase();
+      }
+
       return {
         id: Number(product.id) || 0,
         nombre: String(product.nombre || '').trim(),
         precio_compra: Number(product.precio_compra != null ? product.precio_compra : product.precioCompra || 0),
         precio_venta: Number(product.precio_venta != null ? product.precio_venta : product.precioVenta || 0),
         cantidad: Number(product.cantidad || 0),
-        estado: String(product.estado || 'activo').trim().toLowerCase(),
+        estado: estado,
         categorias_id_categoria: Number(product.categorias_id_categoria != null ? product.categorias_id_categoria : product.categoriasIdCategoria || 0)
       };
     }
@@ -117,12 +124,8 @@
       }).format(Number(value) || 0);
     }
 
-    function normalizeText(value) {
-      return String(value || '').trim().toLowerCase();
-    }
-
     function escapeHtml(value) {
-      return String(value)
+      return String(value == null ? '' : value)
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
@@ -130,24 +133,47 @@
         .replace(/'/g, '&#39;');
     }
 
-    function getCurrentCollection() {
-      return state.view === 'products' ? state.products : state.categories;
+    function getCategoryName(categoryId) {
+      var category = state.categories.find(function (item) {
+        return item.id === Number(categoryId);
+      });
+      return category ? category.nombre : 'Sin categoria';
     }
 
-    function getCurrentFilteredItems() {
-      var items = getCurrentCollection();
-      if (!state.query) {
-        return items.slice();
+    function getStockLevel(quantity) {
+      var value = Number(quantity) || 0;
+
+      if (value < 10) {
+        return 'bajo';
+      }
+      if (value < 50) {
+        return 'medio';
+      }
+      if (value >= 100) {
+        return 'alto';
       }
 
-      return items.filter(function (item) {
-        if (state.view === 'products') {
-          return normalizeText(item.nombre).indexOf(state.query) !== -1 ||
-            normalizeText(item.estado).indexOf(state.query) !== -1;
+      return 'medio';
+    }
+
+    function renderCategoryOptions(selectedId) {
+      var currentValue = selectedId != null ? Number(selectedId) : Number(productFields.categorias_id_categoria.value || 0);
+
+      productFields.categorias_id_categoria.innerHTML = '<option value="">-- Seleccionar categoria --</option>';
+
+      state.categories.forEach(function (category) {
+        var option = document.createElement('option');
+        option.value = String(category.id);
+        option.textContent = category.nombre;
+
+        if (currentValue && Number(category.id) === currentValue) {
+          option.selected = true;
         }
 
-        return normalizeText(item.nombre).indexOf(state.query) !== -1;
+        productFields.categorias_id_categoria.appendChild(option);
       });
+
+      productFields.categorias_id_categoria.disabled = state.categories.length === 0;
     }
 
     function getNextId(items) {
@@ -161,6 +187,7 @@
       productForm.reset();
       productFields.id.value = '';
       productFields.estado.value = 'activo';
+      renderCategoryOptions();
     }
 
     function resetCategoryForm() {
@@ -169,48 +196,64 @@
       categoryFields.id.value = '';
     }
 
+    function isProductsView() {
+      return state.view === 'products';
+    }
+
+    function updateSwitcherState() {
+      switchButtons.forEach(function (button) {
+        var active = button.getAttribute('data-view') === state.view;
+        button.classList.toggle('active', active);
+        button.setAttribute('aria-selected', active ? 'true' : 'false');
+      });
+    }
+
+    function updateViewCopy() {
+      var productsView = isProductsView();
+
+      listTitle.innerHTML = productsView
+        ? '<i class="bi bi-box me-2"></i>Listado de productos'
+        : '<i class="bi bi-tags me-2"></i>Listado de categorias';
+      newLabel.textContent = productsView ? 'Nuevo producto' : 'Nueva categoria';
+
+      productForm.hidden = !productsView;
+      categoryForm.hidden = productsView;
+
+      resetProductForm();
+      resetCategoryForm();
+      applyFormCopy();
+      updateSwitcherState();
+    }
+
     function applyFormCopy() {
-      if (state.view === 'products') {
-        formTitle.textContent = state.editingProductId ? 'Editar producto' : 'Agregar producto';
+      if (isProductsView()) {
+        formTitle.innerHTML = state.editingProductId
+          ? '<i class="bi bi-pencil-square me-2"></i>Editar producto'
+          : '<i class="bi bi-box-seam me-2"></i>Nuevo producto';
         formDescription.textContent = state.editingProductId
           ? 'Actualiza la informacion del producto seleccionado.'
           : 'Completa los datos requeridos para registrar un producto.';
         formBadge.textContent = state.editingProductId ? 'Edicion' : 'Nuevo';
         productSubmitButton.innerHTML = state.editingProductId
-          ? '<i class="bi bi-check2-circle me-2"></i>Actualizar producto'
+          ? '<i class="bi bi-check-lg me-2"></i>Actualizar producto'
           : '<i class="bi bi-save me-2"></i>Guardar producto';
         return;
       }
 
-      formTitle.textContent = state.editingCategoryId ? 'Editar categoria' : 'Agregar categoria';
+      formTitle.innerHTML = state.editingCategoryId
+        ? '<i class="bi bi-pencil-square me-2"></i>Editar categoria'
+        : '<i class="bi bi-tags me-2"></i>Nueva categoria';
       formDescription.textContent = state.editingCategoryId
         ? 'Actualiza el nombre de la categoria seleccionada.'
-        : 'Registra una nueva categoria para el catalogo.';
+        : 'Completa los datos requeridos para registrar una categoria.';
       formBadge.textContent = state.editingCategoryId ? 'Edicion' : 'Nuevo';
       categorySubmitButton.innerHTML = state.editingCategoryId
-        ? '<i class="bi bi-check2-circle me-2"></i>Actualizar categoria'
+        ? '<i class="bi bi-check-lg me-2"></i>Actualizar categoria'
         : '<i class="bi bi-save me-2"></i>Guardar categoria';
     }
 
-    function updateViewCopy() {
-      var isProducts = state.view === 'products';
-      pageTitle.textContent = 'Productos y Categorias';
-      listTitle.textContent = isProducts ? 'Listado de productos' : 'Listado de categorias';
-      listDescription.textContent = isProducts
-        ? 'Columnas solicitadas: nombre, precios, cantidad, estado y categoria.'
-        : 'Vista simple de categorias con nombre y acciones de mantenimiento.';
-      newLabel.textContent = isProducts ? 'Nuevo producto' : 'Nueva categoria';
-      searchInput.placeholder = isProducts ? 'Buscar por nombre o estado' : 'Buscar categoria por nombre';
-
-      productForm.hidden = !isProducts;
-      categoryForm.hidden = isProducts;
-      resetProductForm();
-      resetCategoryForm();
-      applyFormCopy();
-    }
-
     function renderStats() {
-      if (state.view === 'products') {
+      if (isProductsView()) {
         statLabel1.textContent = 'Productos registrados';
         statLabel2.textContent = 'Unidades en inventario';
         statLabel3.textContent = 'Categorias activas';
@@ -219,8 +262,8 @@
           return sum + Number(product.cantidad || 0);
         }, 0));
         statCategories.textContent = String(new Set(state.products.map(function (product) {
-          return String(product.categorias_id_categoria);
-        })).size);
+          return Number(product.categorias_id_categoria) || 0;
+        }).filter(Boolean)).size);
         return;
       }
 
@@ -229,56 +272,103 @@
       statLabel3.textContent = 'Productos vinculados';
       statTotal.textContent = String(state.categories.length);
       statStock.textContent = String(new Set(state.products.map(function (product) {
-        return String(product.categorias_id_categoria);
-      })).size);
+        return Number(product.categorias_id_categoria) || 0;
+      }).filter(Boolean)).size);
       statCategories.textContent = String(state.products.length);
     }
 
     function renderTableHead() {
-      if (state.view === 'products') {
-        tableHead.innerHTML = '<tr><th scope="col">Nombre</th><th scope="col">Precio compra</th><th scope="col">Precio venta</th><th scope="col">Cantidad</th><th scope="col">Estado</th><th scope="col">Categoria ID</th><th scope="col" class="text-end">Acciones</th></tr>';
+      if (isProductsView()) {
+        tableHead.innerHTML = [
+          '<tr>',
+          '<th>Nombre</th>',
+          '<th>Precio compra</th>',
+          '<th>Precio venta</th>',
+          '<th>Cantidad</th>',
+          '<th>Estado</th>',
+          '<th>Categoria</th>',
+          '<th class="text-end">Acciones</th>',
+          '</tr>'
+        ].join('');
+        countCell.colSpan = 7;
         return;
       }
 
-      tableHead.innerHTML = '<tr><th scope="col">ID</th><th scope="col">Nombre</th><th scope="col" class="text-end">Acciones</th></tr>';
+      tableHead.innerHTML = [
+        '<tr>',
+        '<th>Nombre</th>',
+        '<th>Productos vinculados</th>',
+        '<th class="text-end">Acciones</th>',
+        '</tr>'
+      ].join('');
+      countCell.colSpan = 3;
+    }
+
+    function renderEmptyState() {
+      if (isProductsView()) {
+        emptyIcon.className = 'bi bi-box display-4';
+        emptyText.innerHTML = 'No hay productos registrados. <a href="#" id="catalog-empty-link">Agregar uno</a>';
+      } else {
+        emptyIcon.className = 'bi bi-tags display-4';
+        emptyText.innerHTML = 'No hay categorias registradas. <a href="#" id="catalog-empty-link">Agregar una</a>';
+      }
     }
 
     function renderTable() {
-      var items = getCurrentFilteredItems();
+      var items = isProductsView() ? state.products : state.categories;
       tableBody.innerHTML = '';
+      renderEmptyState();
 
       if (!items.length) {
-        emptyState.hidden = false;
-        emptyState.textContent = state.view === 'products' ? 'No hay productos para mostrar.' : 'No hay categorias para mostrar.';
+        emptyState.style.display = 'block';
+        countCell.textContent = isProductsView() ? '0 productos' : '0 categorias';
         return;
       }
 
-      emptyState.hidden = true;
+      emptyState.style.display = 'none';
 
-      items.forEach(function (item) {
-        var row = document.createElement('tr');
-        if (state.view === 'products') {
+      if (isProductsView()) {
+        countCell.textContent = items.length + ' producto(s)';
+        items.forEach(function (item) {
+          var row = document.createElement('tr');
           row.innerHTML = [
             '<td><div class="fw-semibold">' + escapeHtml(item.nombre) + '</div></td>',
             '<td>' + formatCurrency(item.precio_compra) + '</td>',
             '<td>' + formatCurrency(item.precio_venta) + '</td>',
-            '<td><span class="badge rounded-pill text-bg-light border">' + escapeHtml(item.cantidad) + '</span></td>',
+            '<td>' + escapeHtml(item.cantidad) + '</td>',
             '<td><span class="products-status status-' + escapeHtml(item.estado) + '">' + escapeHtml(item.estado) + '</span></td>',
-            '<td>' + escapeHtml(item.categorias_id_categoria) + '</td>',
-            '<td class="text-end"><div class="btn-group btn-group-sm" role="group"><button class="btn btn-outline-primary" type="button" data-action="edit-product" data-id="' + escapeHtml(item.id) + '">Editar</button><button class="btn btn-outline-danger" type="button" data-action="delete-product" data-id="' + escapeHtml(item.id) + '" data-name="' + escapeHtml(item.nombre) + '">Eliminar</button></div></td>'
+            '<td>' + escapeHtml(getCategoryName(item.categorias_id_categoria)) + '</td>',
+            '<td class="text-end">',
+            '<button type="button" class="btn btn-outline-primary btn-sm me-1" data-action="edit-product" data-id="' + escapeHtml(item.id) + '" title="Editar"><i class="bi bi-pencil"></i></button>',
+            '<button type="button" class="btn btn-outline-danger btn-sm" data-action="delete-product" data-id="' + escapeHtml(item.id) + '" data-name="' + escapeHtml(item.nombre) + '" title="Eliminar"><i class="bi bi-trash"></i></button>',
+            '</td>'
           ].join('');
-        } else {
-          row.innerHTML = [
-            '<td>' + escapeHtml(item.id) + '</td>',
-            '<td><div class="fw-semibold">' + escapeHtml(item.nombre) + '</div></td>',
-            '<td class="text-end"><div class="btn-group btn-group-sm" role="group"><button class="btn btn-outline-primary" type="button" data-action="edit-category" data-id="' + escapeHtml(item.id) + '">Editar</button><button class="btn btn-outline-danger" type="button" data-action="delete-category" data-id="' + escapeHtml(item.id) + '" data-name="' + escapeHtml(item.nombre) + '">Eliminar</button></div></td>'
-          ].join('');
-        }
+          tableBody.appendChild(row);
+        });
+        return;
+      }
+
+      countCell.textContent = items.length + ' categoria(s)';
+      items.forEach(function (item) {
+        var linkedProducts = state.products.filter(function (product) {
+          return Number(product.categorias_id_categoria) === Number(item.id);
+        }).length;
+
+        var row = document.createElement('tr');
+        row.innerHTML = [
+          '<td><div class="fw-semibold">' + escapeHtml(item.nombre) + '</div></td>',
+          '<td>' + escapeHtml(linkedProducts) + '</td>',
+          '<td class="text-end">',
+          '<button type="button" class="btn btn-outline-primary btn-sm me-1" data-action="edit-category" data-id="' + escapeHtml(item.id) + '" title="Editar"><i class="bi bi-pencil"></i></button>',
+          '<button type="button" class="btn btn-outline-danger btn-sm" data-action="delete-category" data-id="' + escapeHtml(item.id) + '" data-name="' + escapeHtml(item.nombre) + '" title="Eliminar"><i class="bi bi-trash"></i></button>',
+          '</td>'
+        ].join('');
         tableBody.appendChild(row);
       });
     }
 
     function renderAll() {
+      renderCategoryOptions();
       renderStats();
       renderTableHead();
       renderTable();
@@ -288,7 +378,8 @@
     function renderLoadingState() {
       tableHead.innerHTML = '';
       tableBody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">Cargando catalogos...</td></tr>';
-      emptyState.hidden = true;
+      emptyState.style.display = 'none';
+      countCell.textContent = 'Cargando...';
       statTotal.textContent = '...';
       statStock.textContent = '...';
       statCategories.textContent = '...';
@@ -296,8 +387,9 @@
 
     function renderErrorState() {
       tableHead.innerHTML = '';
-      tableBody.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-4">No se pudieron cargar los mocks.</td></tr>';
-      emptyState.hidden = true;
+      tableBody.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-4">No se pudieron cargar los catalogos.</td></tr>';
+      emptyState.style.display = 'none';
+      countCell.textContent = '0 registros';
       statTotal.textContent = '0';
       statStock.textContent = '0';
       statCategories.textContent = '0';
@@ -316,6 +408,7 @@
       if (!product) {
         return;
       }
+
       state.editingProductId = product.id;
       productFields.id.value = product.id;
       productFields.nombre.value = product.nombre;
@@ -323,7 +416,7 @@
       productFields.precio_venta.value = product.precio_venta;
       productFields.cantidad.value = product.cantidad;
       productFields.estado.value = product.estado;
-      productFields.categorias_id_categoria.value = product.categorias_id_categoria;
+      renderCategoryOptions(product.categorias_id_categoria);
       openFormModal();
       productFields.nombre.focus();
     }
@@ -332,6 +425,7 @@
       if (!category) {
         return;
       }
+
       state.editingCategoryId = category.id;
       categoryFields.id.value = category.id;
       categoryFields.nombre.value = category.nombre;
@@ -420,34 +514,36 @@
       renderAll();
     }
 
+    function openNewRecord(event) {
+      if (event) {
+        event.preventDefault();
+      }
+
+      resetProductForm();
+      resetCategoryForm();
+      openFormModal();
+
+      if (isProductsView()) {
+        productFields.nombre.focus();
+      } else {
+        categoryFields.nombre.focus();
+      }
+    }
+
     function bindEvents() {
       switchButtons.forEach(function (button) {
         button.addEventListener('click', function () {
           state.view = button.getAttribute('data-view');
-          state.query = '';
-          searchInput.value = '';
-          switchButtons.forEach(function (item) {
-            item.classList.toggle('active', item === button);
-          });
           updateViewCopy();
           renderAll();
         });
       });
 
-      newTrigger.addEventListener('click', function () {
-        resetProductForm();
-        resetCategoryForm();
-        openFormModal();
-        if (state.view === 'products') {
-          productFields.nombre.focus();
-        } else {
-          categoryFields.nombre.focus();
+      newTrigger.addEventListener('click', openNewRecord);
+      emptyState.addEventListener('click', function (event) {
+        if (event.target && event.target.id === 'catalog-empty-link') {
+          openNewRecord(event);
         }
-      });
-
-      searchInput.addEventListener('input', function (event) {
-        state.query = normalizeText(event.target.value);
-        renderTable();
       });
 
       productForm.addEventListener('submit', function (event) {
@@ -483,14 +579,11 @@
 
         if (action === 'edit-product') {
           fillProductForm(state.products.find(function (item) { return item.id === id; }));
-        }
-        if (action === 'delete-product') {
+        } else if (action === 'delete-product') {
           askDelete('product', id, name);
-        }
-        if (action === 'edit-category') {
+        } else if (action === 'edit-category') {
           fillCategoryForm(state.categories.find(function (item) { return item.id === id; }));
-        }
-        if (action === 'delete-category') {
+        } else if (action === 'delete-category') {
           askDelete('category', id, name);
         }
       });

@@ -3,14 +3,10 @@
  * login.php - Pantalla de login: clientes (email+password) o staff (user+role)
  */
 session_start();
+require_once __DIR__ . '/../../../backend/config/auth_guard.php';
 
 if (!empty($_SESSION['user'])) {
-    $role = $_SESSION['role'] ?? '';
-    if ($role === 'cliente') {
-        header('Location: /hamilton-store/public/pages/tienda/Homepage.php');
-    } else {
-        header('Location: /hamilton-store/public/pages/sistema/dashboard.php');
-    }
+    header('Location: ' . getRoleHomePath($_SESSION['role'] ?? ''));
     exit;
 }
 

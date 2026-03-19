@@ -6,10 +6,10 @@ require_once __DIR__ . '/../../../backend/config/auth_guard.php';
 requireLogin();
 
 $base = dirname(dirname(dirname($_SERVER['SCRIPT_NAME'])));
-$dashboardUrl = $base . '/pages/sistema/dashboard.php';
-$logoutUrl = dirname($base) . '/backend/api/auth_logout.php';
 $user = $_SESSION['user'] ?? '';
 $role = $_SESSION['role'] ?? '';
+$dashboardUrl = getRoleHomePath($role);
+$logoutUrl = dirname($base) . '/backend/api/auth_logout.php';
 ?>
 <!DOCTYPE html>
 <html lang="es">

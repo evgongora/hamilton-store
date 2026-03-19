@@ -6,7 +6,9 @@
 $user = $user ?? '';
 $role = $role ?? '';
 $logoutUrl = $logoutUrl ?? ($basePath . '/../backend/api/auth_logout.php');
-$dashboardUrl = $basePath . '/pages/sistema/dashboard.php';
+$dashboardUrl = function_exists('getRoleHomePath')
+    ? getRoleHomePath($role)
+    : $basePath . '/pages/sistema/dashboard.php';
 ?>
 <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom app-navbar">
     <div class="container-fluid px-3">
