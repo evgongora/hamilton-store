@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/../../../backend/config/auth_guard.php';
-requireLogin();
+requireRole(['admin']);
 $basePath = dirname(dirname(dirname($_SERVER['SCRIPT_NAME'])));
 if ($basePath === '/' || $basePath === '\\') $basePath = '';
 $pageTitle = 'Empleados - M. Hamilton Store';

@@ -5,6 +5,7 @@
  */
 $currentPage = $currentPage ?? '';
 $pagesPath = $basePath . '/pages/sistema';
+$currentRole = $_SESSION['role'] ?? '';
 
 $menuItems = [
     ['key' => 'dashboard', 'label' => 'Dashboard', 'icon' => 'bi-speedometer2', 'url' => 'dashboard.php'],
@@ -20,6 +21,18 @@ $menuItems = [
     ['key' => 'usuarios', 'label' => 'Usuarios', 'icon' => 'bi-person-gear', 'url' => 'usuarios.php'],
     ['key' => 'reportes', 'label' => 'Reportes', 'icon' => 'bi-graph-up', 'url' => 'reportes.php'],
 ];
+
+if ($currentRole === 'inventario') {
+    $allowedKeys = ['productos', 'inventario', 'proveedores', 'compras'];
+    $menuItems = array_values(array_filter($menuItems, function ($item) use ($allowedKeys) {
+        return in_array($item['key'], $allowedKeys, true);
+    }));
+} elseif ($currentRole === 'cajero') {
+    $allowedKeys = ['clientes', 'inventario', 'ventas', 'pagos'];
+    $menuItems = array_values(array_filter($menuItems, function ($item) use ($allowedKeys) {
+        return in_array($item['key'], $allowedKeys, true);
+    }));
+}
 ?>
 <aside class="sidebar bg-dark text-white" id="sidebar">
     <nav class="sidebar-nav py-3">

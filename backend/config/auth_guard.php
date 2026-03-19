@@ -54,3 +54,25 @@ function requireRole(array $allowedRoles): void {
 function isLoggedIn(): bool {
     return !empty($_SESSION['user']);
 }
+
+/**
+ * Ruta inicial segun el rol autenticado.
+ */
+function getRoleHomePath(?string $role = null): string {
+    $base = getBasePath();
+    $role = $role ?? ($_SESSION['role'] ?? '');
+
+    if ($role === 'cliente') {
+        return $base . '/public/pages/tienda/Homepage.php';
+    }
+
+    if ($role === 'cajero') {
+        return $base . '/public/pages/sistema/clientes.php';
+    }
+
+    if ($role === 'inventario') {
+        return $base . '/public/pages/sistema/inventario.php';
+    }
+
+    return $base . '/public/pages/sistema/dashboard.php';
+}

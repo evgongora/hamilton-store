@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/../../../backend/config/auth_guard.php';
-requireLogin();
+requireRole(['admin', 'cajero']);
 $basePath = dirname(dirname(dirname($_SERVER['SCRIPT_NAME'])));
 if ($basePath === '/' || $basePath === '\\') $basePath = '';
 $pageTitle = 'Clientes - M. Hamilton Store';
@@ -12,8 +12,16 @@ $role = $_SESSION['role'] ?? '';
 <html lang="es">
 <head>
     <?php include __DIR__ . '/../../components/head.php'; ?>
+    <?php if ($role !== 'admin'): ?>
+        <style>
+            #clientesBody .btn-editar,
+            #clientesBody .btn-eliminar {
+                display: none !important;
+            }
+        </style>
+    <?php endif; ?>
 </head>
-<body class="app-layout bg-light" data-base-path="<?php echo htmlspecialchars($basePath); ?>">
+<body class="app-layout bg-light" data-base-path="<?php echo htmlspecialchars($basePath); ?>" data-current-role="<?php echo htmlspecialchars($role); ?>">
     <?php include __DIR__ . '/../../components/navbar.php'; ?>
     <div class="app-main">
         <?php include __DIR__ . '/../../components/sidebar.php'; ?>
@@ -37,13 +45,15 @@ $role = $_SESSION['role'] ?? '';
                                     <th>Tel&eacute;fono</th>
                                     <th>Ubicaci&oacute;n</th>
                                     <th>Estado</th>
-                                    <th class="text-end">Acciones</th>
+                                    <?php if ($role === 'admin'): ?>
+                                        <th class="text-end">Acciones</th>
+                                    <?php endif; ?>
                                 </tr>
                             </thead>
                             <tbody id="clientesBody"></tbody>
                             <tfoot class="table-light">
                                 <tr>
-                                    <td colspan="6" class="text-muted small" id="clientesCount">0 clientes</td>
+                                    <td colspan="<?php echo $role === 'admin' ? '6' : '5'; ?>" class="text-muted small" id="clientesCount">0 clientes</td>
                                 </tr>
                             </tfoot>
                         </table>
@@ -137,6 +147,6 @@ $role = $_SESSION['role'] ?? '';
     <?php include __DIR__ . '/../../components/footer.php'; ?>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="<?php echo htmlspecialchars($basePath); ?>/js/app.js"></script>
-    <script src="<?php echo htmlspecialchars($basePath); ?>/js/modules/clientes.js"></script>
+    <script src="<?php echo htmlspecialchars($basePath); ?>/js/modules/clientes.js?v=3"></script>
 </body>
 </html>

@@ -3,7 +3,7 @@
  * productos.php - Modulo de productos y categorias (sistema)
  */
 require_once __DIR__ . '/../../../backend/config/auth_guard.php';
-requireLogin();
+requireRole(['admin', 'inventario']);
 
 $basePath = dirname(dirname(dirname($_SERVER['SCRIPT_NAME'])));
 $pageTitle = 'Productos - M. Hamilton Store';

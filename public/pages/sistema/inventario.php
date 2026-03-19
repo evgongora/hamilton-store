@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/../../../backend/config/auth_guard.php';
-requireLogin();
+requireRole(['admin', 'inventario', 'cajero']);
 $basePath = dirname(dirname(dirname($_SERVER['SCRIPT_NAME'])));
 $pageTitle = 'Inventario - M. Hamilton Store';
 $currentPage = 'inventario';

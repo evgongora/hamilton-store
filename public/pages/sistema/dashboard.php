@@ -3,7 +3,7 @@
  * dashboard.php - Panel principal con métricas del sistema
  */
 require_once __DIR__ . '/../../../backend/config/auth_guard.php';
-requireLogin();
+requireRole(['admin']);
 
 $basePath = dirname(dirname(dirname($_SERVER['SCRIPT_NAME'])));
 if ($basePath === '/' || $basePath === '\\') $basePath = '';
