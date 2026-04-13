@@ -26,7 +26,7 @@ $logoutUrl = dirname($base) . '/backend/api/auth_logout.php';
             <h2 class="card-title mb-3">Sin acceso</h2>
             <p class="text-muted mb-4">Tu rol (<strong><?php echo htmlspecialchars($role); ?></strong>) no tiene permiso para ver esta página.</p>
             <div class="d-flex gap-2 justify-content-center flex-wrap">
-                <a class="btn btn-dark" href="<?php echo htmlspecialchars($dashboardUrl); ?>">Ir al Dashboard</a>
+                <a class="btn btn-dark" href="<?php echo htmlspecialchars($dashboardUrl); ?>">Ir al inicio</a>
                 <a class="btn btn-outline-secondary" href="<?php echo htmlspecialchars($logoutUrl); ?>">Cerrar sesión</a>
             </div>
         </div>

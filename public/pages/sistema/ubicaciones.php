@@ -1,8 +1,15 @@
 <?php
+/**
+ * ubicaciones.php — Provincias, cantones y distritos (demo localStorage).
+ */
 require_once __DIR__ . '/../../../backend/config/auth_guard.php';
-requireRole(['admin']);
+requireRole(['admin', 'soporte']);
+
 $basePath = dirname(dirname(dirname($_SERVER['SCRIPT_NAME'])));
-if ($basePath === '/' || $basePath === '\\') $basePath = '';
+if ($basePath === '/' || $basePath === '\\') {
+    $basePath = '';
+}
+
 $pageTitle = 'Ubicaciones - M. Hamilton Store';
 $currentPage = 'ubicaciones';
 $user = $_SESSION['user'] ?? '';
@@ -18,88 +25,130 @@ $role = $_SESSION['role'] ?? '';
     <div class="app-main">
         <?php include __DIR__ . '/../../components/sidebar.php'; ?>
         <main class="app-content">
-            <h1 class="mb-4">Ubicaciones</h1>
-            <p class="text-muted mb-4">Provincias, cantones y distritos de Costa Rica. Usados en direcciones de clientes y proveedores.</p>
+            <h1 class="mb-2">Ubicaciones</h1>
+            <p class="text-muted small mb-4">
+                Jerarquía provincia → cantón → distrito (demo en el navegador). Para producción, sincronizar con tablas Oracle de ubicación.
+            </p>
 
-            <ul class="nav nav-tabs mb-4" id="ubicacionesTabs" role="tablist">
+            <ul class="nav nav-tabs mb-3" role="tablist">
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="provincias-tab" data-bs-toggle="tab" data-bs-target="#provincias" type="button">Provincias</button>
+                    <button class="nav-link active" id="tab-prov" data-bs-toggle="tab" data-bs-target="#pane-prov" type="button" role="tab">Provincias</button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="cantones-tab" data-bs-toggle="tab" data-bs-target="#cantones" type="button">Cantones</button>
+                    <button class="nav-link" id="tab-cant" data-bs-toggle="tab" data-bs-target="#pane-cant" type="button" role="tab">Cantones</button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="distritos-tab" data-bs-toggle="tab" data-bs-target="#distritos" type="button">Distritos</button>
+                    <button class="nav-link" id="tab-dist" data-bs-toggle="tab" data-bs-target="#pane-dist" type="button" role="tab">Distritos</button>
                 </li>
             </ul>
 
-            <div class="tab-content" id="ubicacionesTabContent">
-                <div class="tab-pane fade show active" id="provincias">
-                    <div class="card">
-                        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-                            <h5 class="mb-0">Provincias</h5>
-                            <button type="button" class="btn btn-light btn-sm" id="btnNuevaProvincia"><i class="bi bi-plus-lg me-1"></i>Nueva</button>
+            <div class="tab-content">
+                <div class="tab-pane fade show active" id="pane-prov" role="tabpanel">
+                    <div class="d-flex justify-content-end mb-2">
+                        <button type="button" class="btn btn-dark btn-sm" id="btnNuevaProvincia"><i class="bi bi-plus-lg me-1"></i> Nueva provincia</button>
+                    </div>
+                    <div class="table-responsive shadow-sm rounded border bg-white">
+                        <table class="table table-hover table-sm mb-0">
+                            <thead class="table-light"><tr><th>ID</th><th>Nombre</th><th class="text-end">Acciones</th></tr></thead>
+                            <tbody id="provinciasBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="tab-pane fade" id="pane-cant" role="tabpanel">
+                    <div class="d-flex justify-content-end mb-2">
+                        <button type="button" class="btn btn-dark btn-sm" id="btnNuevoCanton"><i class="bi bi-plus-lg me-1"></i> Nuevo cantón</button>
+                    </div>
+                    <div class="table-responsive shadow-sm rounded border bg-white">
+                        <table class="table table-hover table-sm mb-0">
+                            <thead class="table-light"><tr><th>ID</th><th>Nombre</th><th>Provincia</th><th class="text-end">Acciones</th></tr></thead>
+                            <tbody id="cantonesBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="tab-pane fade" id="pane-dist" role="tabpanel">
+                    <div class="d-flex justify-content-end mb-2">
+                        <button type="button" class="btn btn-dark btn-sm" id="btnNuevoDistrito"><i class="bi bi-plus-lg me-1"></i> Nuevo distrito</button>
+                    </div>
+                    <div class="table-responsive shadow-sm rounded border bg-white">
+                        <table class="table table-hover table-sm mb-0">
+                            <thead class="table-light"><tr><th>ID</th><th>Nombre</th><th>Cantón</th><th>Cód. postal</th><th class="text-end">Acciones</th></tr></thead>
+                            <tbody id="distritosBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal fade" id="modalProvincia" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header"><h5 class="modal-title">Provincia</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button></div>
+                        <div class="modal-body">
+                            <input type="hidden" id="provinciaId" value="">
+                            <label for="provinciaNombre" class="form-label">Nombre</label>
+                            <input type="text" class="form-control" id="provinciaNombre" maxlength="20">
                         </div>
-                        <div class="card-body p-0">
-                            <table class="table table-hover mb-0">
-                                <thead class="table-light"><tr><th>ID</th><th>Nombre</th><th class="text-end">Acciones</th></tr></thead>
-                                <tbody id="provinciasBody"></tbody>
-                            </table>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="button" class="btn btn-dark" id="btnGuardarProvincia">Guardar</button>
                         </div>
                     </div>
                 </div>
-                <div class="tab-pane fade" id="cantones">
-                    <div class="card">
-                        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-                            <h5 class="mb-0">Cantones</h5>
-                            <button type="button" class="btn btn-light btn-sm" id="btnNuevoCanton"><i class="bi bi-plus-lg me-1"></i>Nuevo</button>
+            </div>
+
+            <div class="modal fade" id="modalCanton" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header"><h5 class="modal-title">Cantón</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button></div>
+                        <div class="modal-body">
+                            <input type="hidden" id="cantonId" value="">
+                            <div class="mb-3">
+                                <label for="cantonProvincia" class="form-label">Provincia</label>
+                                <select class="form-select" id="cantonProvincia"></select>
+                            </div>
+                            <div class="mb-0">
+                                <label for="cantonNombre" class="form-label">Nombre</label>
+                                <input type="text" class="form-control" id="cantonNombre" maxlength="50">
+                            </div>
                         </div>
-                        <div class="card-body p-0">
-                            <table class="table table-hover mb-0">
-                                <thead class="table-light"><tr><th>ID</th><th>Nombre</th><th>Provincia</th><th class="text-end">Acciones</th></tr></thead>
-                                <tbody id="cantonesBody"></tbody>
-                            </table>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="button" class="btn btn-dark" id="btnGuardarCanton">Guardar</button>
                         </div>
                     </div>
                 </div>
-                <div class="tab-pane fade" id="distritos">
-                    <div class="card">
-                        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-                            <h5 class="mb-0">Distritos</h5>
-                            <button type="button" class="btn btn-light btn-sm" id="btnNuevoDistrito"><i class="bi bi-plus-lg me-1"></i>Nuevo</button>
+            </div>
+
+            <div class="modal fade" id="modalDistrito" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header"><h5 class="modal-title">Distrito</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button></div>
+                        <div class="modal-body">
+                            <input type="hidden" id="distritoId" value="">
+                            <div class="mb-3">
+                                <label for="distritoCanton" class="form-label">Cantón</label>
+                                <select class="form-select" id="distritoCanton"></select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="distritoNombre" class="form-label">Nombre</label>
+                                <input type="text" class="form-control" id="distritoNombre" maxlength="50">
+                            </div>
+                            <div class="mb-0">
+                                <label for="distritoCodigoPostal" class="form-label">Código postal</label>
+                                <input type="number" class="form-control" id="distritoCodigoPostal" min="0">
+                            </div>
                         </div>
-                        <div class="card-body p-0">
-                            <table class="table table-hover mb-0">
-                                <thead class="table-light"><tr><th>ID</th><th>Nombre</th><th>Cantón</th><th>Código postal</th><th class="text-end">Acciones</th></tr></thead>
-                                <tbody id="distritosBody"></tbody>
-                            </table>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="button" class="btn btn-dark" id="btnGuardarDistrito">Guardar</button>
                         </div>
                     </div>
                 </div>
             </div>
         </main>
     </div>
-
-    <!-- Modales inline simplificados -->
-    <div class="modal fade" id="modalProvincia" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
-        <div class="modal-header bg-dark text-white"><h5 class="modal-title">Provincia</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
-        <div class="modal-body"><input type="hidden" id="provinciaId"><input type="text" class="form-control" id="provinciaNombre" placeholder="Nombre"></div>
-        <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button><button type="button" class="btn btn-primary" id="btnGuardarProvincia">Guardar</button></div>
-    </div></div></div>
-    <div class="modal fade" id="modalCanton" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
-        <div class="modal-header bg-dark text-white"><h5 class="modal-title">Cantón</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
-        <div class="modal-body"><input type="hidden" id="cantonId"><input type="text" class="form-control mb-2" id="cantonNombre" placeholder="Nombre"><select class="form-select" id="cantonProvincia"><option value="">-- Provincia --</option></select></div>
-        <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button><button type="button" class="btn btn-primary" id="btnGuardarCanton">Guardar</button></div>
-    </div></div></div>
-    <div class="modal fade" id="modalDistrito" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
-        <div class="modal-header bg-dark text-white"><h5 class="modal-title">Distrito</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
-        <div class="modal-body"><input type="hidden" id="distritoId"><input type="text" class="form-control mb-2" id="distritoNombre" placeholder="Nombre"><select class="form-select mb-2" id="distritoCanton"><option value="">-- Cantón --</option></select><input type="number" class="form-control" id="distritoCodigoPostal" placeholder="Código postal (opcional)"></div>
-        <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button><button type="button" class="btn btn-primary" id="btnGuardarDistrito">Guardar</button></div>
-    </div></div></div>
-
     <?php include __DIR__ . '/../../components/footer.php'; ?>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="<?php echo htmlspecialchars($basePath); ?>/js/app.js"></script>
+    <?php include __DIR__ . '/../../components/scripts_bootstrap.php'; ?>
     <script src="<?php echo htmlspecialchars($basePath); ?>/js/modules/ubicaciones.js"></script>
+    <script src="<?php echo htmlspecialchars($basePath); ?>/js/app.js"></script>
 </body>
 </html>

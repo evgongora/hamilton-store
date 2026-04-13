@@ -1,133 +1,156 @@
 <?php
 require_once __DIR__ . '/../../../backend/config/auth_guard.php';
-requireRole(['admin', 'inventario']);
+requireRole(['admin', 'soporte', 'inventario']);
+
 $basePath = dirname(dirname(dirname($_SERVER['SCRIPT_NAME'])));
+if ($basePath === '/' || $basePath === '\\') {
+    $basePath = '';
+}
+
 $pageTitle = 'Proveedores - M. Hamilton Store';
 $currentPage = 'proveedores';
 $user = $_SESSION['user'] ?? '';
 $role = $_SESSION['role'] ?? '';
+$isAdmin = ($role === 'admin');
 ?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <?php include __DIR__ . '/../../components/head.php'; ?>
 </head>
-<body class="app-layout bg-light" data-base-path="<?php echo htmlspecialchars($basePath); ?>" data-current-role="<?php echo htmlspecialchars($role); ?>">
+<body
+    class="app-layout bg-light"
+    data-base-path="<?php echo htmlspecialchars($basePath); ?>"
+    data-current-role="<?php echo htmlspecialchars($role); ?>"
+>
     <?php include __DIR__ . '/../../components/navbar.php'; ?>
     <div class="app-main">
         <?php include __DIR__ . '/../../components/sidebar.php'; ?>
         <main class="app-content">
-            <h1 class="mb-4">Proveedores</h1>
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                <h1 class="mb-0">Proveedores</h1>
+                <span id="proveedoresCount" class="text-muted small">0 proveedor(es)</span>
+            </div>
+            <p class="text-muted small mb-4">
+                Proveedores y contactos desde Oracle (<code>pkg_proveedores</code>, <code>pkg_contactos_proveedores</code>).
+            </p>
 
-            <div class="card">
-                <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center gap-3 flex-wrap">
-                    <div class="d-flex align-items-center gap-3">
-                        <h5 class="mb-0"><i class="bi bi-truck me-2"></i>Listado de proveedores</h5>
-                        <span class="small text-white-50" id="proveedoresCount">0 proveedores</span>
+            <?php if ($isAdmin): ?>
+            <div class="d-flex justify-content-end mb-3">
+                <button type="button" class="btn btn-dark" id="btnNuevoProveedor">
+                    <i class="bi bi-plus-lg me-1"></i> Nuevo proveedor
+                </button>
+            </div>
+            <?php endif; ?>
+
+            <div class="row g-4">
+                <div class="col-lg-7">
+                    <div id="proveedoresLoading" class="text-center py-5 d-none">
+                        <div class="spinner-border text-secondary" role="status"><span class="visually-hidden">Cargando</span></div>
                     </div>
-                    <?php if ($role === 'admin'): ?>
-                        <button type="button" class="btn btn-sm btn-light" id="btnNuevoProveedor">
-                            <i class="bi bi-plus-lg me-1"></i>Nuevo proveedor
-                        </button>
-                    <?php endif; ?>
+                    <div id="proveedoresEmpty" class="alert alert-light border text-center d-none">
+                        No hay proveedores registrados.
+                    </div>
+                    <div id="proveedoresContent" class="d-none">
+                        <div class="row g-3" id="proveedoresGrid"></div>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <div id="proveedoresLoading" class="text-center text-muted py-5">
-                        <div class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></div>
-                        Cargando proveedores...
-                    </div>
-
-                    <div id="proveedoresEmpty" class="text-center text-muted py-5 d-none">
-                        <i class="bi bi-truck display-4"></i>
-                        <p class="mt-2 mb-0">No hay proveedores registrados.</p>
-                    </div>
-
-                    <div id="proveedoresContent" class="row g-4 d-none">
-                        <div class="col-12 col-lg-7">
-                            <div class="row g-3" id="proveedoresGrid"></div>
+                <div class="col-lg-5">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-white border-bottom">
+                            <h5 class="mb-0"><i class="bi bi-people me-2"></i>Contactos</h5>
                         </div>
-                        <div class="col-12 col-lg-5">
-                            <div class="border rounded-3 bg-light h-100 p-3" id="contactosPanel">
-                                <div class="text-muted">Seleccione un proveedor para ver sus contactos.</div>
+                        <div class="card-body" id="contactosPanel">
+                            <div class="text-muted">Seleccione un proveedor para ver sus contactos.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal fade" id="providerModal" tabindex="-1" aria-labelledby="providerModalTitle" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <div>
+                                <h5 class="modal-title" id="providerModalTitle">Nuevo proveedor</h5>
+                                <p class="text-muted small mb-0" id="providerModalDescription">Registra un proveedor nuevo.</p>
                             </div>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                         </div>
+                        <form id="providerForm">
+                            <div class="modal-body">
+                                <input type="hidden" id="providerId" value="">
+                                <div class="mb-3">
+                                    <label for="providerNombre" class="form-label">Nombre comercial <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="providerNombre" required maxlength="150" autocomplete="organization">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="providerCedulaJuridica" class="form-label">Cédula jurídica <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="providerCedulaJuridica" required maxlength="15" placeholder="ej. 3-101-123456">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="providerPaginaWeb" class="form-label">Página web</label>
+                                    <input type="url" class="form-control" id="providerPaginaWeb" maxlength="150" placeholder="https://…">
+                                </div>
+                                <div class="mb-0">
+                                    <label for="providerIdEstado" class="form-label">Estado</label>
+                                    <select class="form-select" id="providerIdEstado" required></select>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                <button type="submit" class="btn btn-dark" id="providerSubmitButton">Guardar proveedor</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal fade" id="contactModal" tabindex="-1" aria-labelledby="contactModalTitle" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <div>
+                                <h5 class="modal-title" id="contactModalTitle">Nuevo contacto</h5>
+                                <p class="text-muted small mb-0" id="contactModalDescription">Registra un contacto para el proveedor seleccionado.</p>
+                            </div>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                        </div>
+                        <form id="contactForm">
+                            <div class="modal-body">
+                                <input type="hidden" id="contactId" value="">
+                                <input type="hidden" id="contactProviderId" value="">
+                                <div class="mb-3">
+                                    <label for="contactNombre" class="form-label">Nombre <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="contactNombre" required maxlength="50">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="contactApellido" class="form-label">Apellido <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="contactApellido" required maxlength="50">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="contactEmail" class="form-label">Email <span class="text-danger">*</span></label>
+                                    <input type="email" class="form-control" id="contactEmail" required maxlength="150">
+                                </div>
+                                <div class="mb-0">
+                                    <label for="contactTelefono" class="form-label">Teléfono <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="contactTelefono" required maxlength="25">
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                <button type="submit" class="btn btn-dark" id="contactSubmitButton">Guardar contacto</button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </div>
         </main>
     </div>
-
-    <?php if ($role === 'admin'): ?>
-        <div class="modal fade" id="providerModal" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <form id="providerForm">
-                        <div class="modal-header bg-dark text-white">
-                            <div>
-                                <h5 class="modal-title mb-1" id="providerModalTitle">Nuevo proveedor</h5>
-                                <p class="mb-0 text-white-50 small" id="providerModalDescription">Registra un proveedor nuevo.</p>
-                            </div>
-                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-                        </div>
-                        <div class="modal-body">
-                            <input type="hidden" id="providerId">
-                            <label for="providerNombre" class="form-label">Nombre del proveedor</label>
-                            <input type="text" id="providerNombre" class="form-control" required maxlength="120">
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-                            <button type="submit" class="btn btn-dark" id="providerSubmitButton">Guardar proveedor</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-
-        <div class="modal fade" id="contactModal" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <form id="contactForm">
-                        <div class="modal-header bg-dark text-white">
-                            <div>
-                                <h5 class="modal-title mb-1" id="contactModalTitle">Nuevo contacto</h5>
-                                <p class="mb-0 text-white-50 small" id="contactModalDescription">Registra un contacto para el proveedor seleccionado.</p>
-                            </div>
-                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-                        </div>
-                        <div class="modal-body">
-                            <input type="hidden" id="contactProviderId">
-                            <input type="hidden" id="contactIndex">
-
-                            <div class="mb-3">
-                                <label for="contactNombre" class="form-label">Nombre</label>
-                                <input type="text" id="contactNombre" class="form-control" required maxlength="120">
-                            </div>
-                            <div class="mb-3">
-                                <label for="contactPuesto" class="form-label">Puesto</label>
-                                <input type="text" id="contactPuesto" class="form-control" maxlength="120">
-                            </div>
-                            <div class="mb-3">
-                                <label for="contactTelefono" class="form-label">Telefono</label>
-                                <input type="text" id="contactTelefono" class="form-control" maxlength="60">
-                            </div>
-                            <div>
-                                <label for="contactEmail" class="form-label">Correo</label>
-                                <input type="email" id="contactEmail" class="form-control" maxlength="160">
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-                            <button type="submit" class="btn btn-dark" id="contactSubmitButton">Guardar contacto</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    <?php endif; ?>
-
     <?php include __DIR__ . '/../../components/footer.php'; ?>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="<?php echo htmlspecialchars($basePath); ?>/js/app.js"></script>
+    <?php include __DIR__ . '/../../components/scripts_bootstrap.php'; ?>
+    <script src="<?php echo htmlspecialchars($basePath); ?>/js/services/api.js"></script>
     <script src="<?php echo htmlspecialchars($basePath); ?>/js/modules/proveedores.js"></script>
+    <script src="<?php echo htmlspecialchars($basePath); ?>/js/app.js"></script>
 </body>
 </html>

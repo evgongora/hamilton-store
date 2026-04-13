@@ -1,8 +1,12 @@
 <?php
 require_once __DIR__ . '/../../../backend/config/auth_guard.php';
 requireRole(['admin']);
+
 $basePath = dirname(dirname(dirname($_SERVER['SCRIPT_NAME'])));
-if ($basePath === '/' || $basePath === '\\') $basePath = '';
+if ($basePath === '/' || $basePath === '\\') {
+    $basePath = '';
+}
+
 $pageTitle = 'Usuarios - M. Hamilton Store';
 $currentPage = 'usuarios';
 $user = $_SESSION['user'] ?? '';
@@ -18,96 +22,81 @@ $role = $_SESSION['role'] ?? '';
     <div class="app-main">
         <?php include __DIR__ . '/../../components/sidebar.php'; ?>
         <main class="app-content">
-            <h1 class="mb-4">Usuarios</h1>
-
-            <div class="card">
-                <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0"><i class="bi bi-person-gear me-2"></i>Listado de usuarios</h5>
-                    <button type="button" class="btn btn-light btn-sm" id="btnNuevoUsuario">
-                        <i class="bi bi-plus-lg me-1"></i>Nuevo usuario
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                <h1 class="mb-0">Usuarios del sistema</h1>
+                <div class="d-flex align-items-center gap-3">
+                    <span id="usuariosCount" class="text-muted small">0 usuario(s)</span>
+                    <button type="button" class="btn btn-dark btn-sm" id="btnNuevoUsuario">
+                        <i class="bi bi-plus-lg me-1"></i> Nuevo
                     </button>
                 </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Usuario</th>
-                                    <th>Rol</th>
-                                    <th>Empleado</th>
-                                    <th>Estado</th>
-                                    <th class="text-end">Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody id="usuariosBody"></tbody>
-                            <tfoot class="table-light">
-                                <tr>
-                                    <td colspan="5" class="text-muted small" id="usuariosCount">0 usuarios</td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
-                    <div id="usuariosEmpty" class="text-center text-muted py-5">
-                        <i class="bi bi-person-gear display-4"></i>
-                        <p class="mt-2">No hay usuarios registrados. <a href="#" id="linkNuevoUsuario">Agregar uno</a></p>
+            </div>
+            <p class="text-muted small mb-4">
+                Usuarios de personal vinculados a empleados (Oracle). Los usuarios de clientes de la tienda se listan como solo lectura.
+            </p>
+
+            <div class="table-responsive shadow-sm rounded border bg-white">
+                <table class="table table-hover table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Usuario</th>
+                            <th>Rol</th>
+                            <th>Empleado</th>
+                            <th>Estado</th>
+                            <th class="text-end">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usuariosBody"></tbody>
+                </table>
+            </div>
+            <p id="usuariosEmpty" class="text-muted py-4 text-center" style="display: none;">No hay usuarios.</p>
+
+            <div class="modal fade" id="modalUsuario" tabindex="-1" aria-labelledby="modalUsuarioLabel" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="modalUsuarioLabel">Usuario</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="formUsuario">
+                                <input type="hidden" id="usuarioId" value="">
+                                <div class="mb-3">
+                                    <label for="usuarioUsername" class="form-label">Nombre de usuario</label>
+                                    <input type="text" class="form-control" id="usuarioUsername" required maxlength="50" autocomplete="username">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="usuarioPassword" class="form-label">Contraseña</label>
+                                    <input type="password" class="form-control" id="usuarioPassword" maxlength="100" autocomplete="new-password">
+                                    <div class="form-text" id="pwdReq">Obligatoria para usuarios nuevos.</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="usuarioRol" class="form-label">Rol</label>
+                                    <select class="form-select" id="usuarioRol" required></select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="usuarioEstado" class="form-label">Estado</label>
+                                    <select class="form-select" id="usuarioEstado" required></select>
+                                </div>
+                                <div class="mb-0">
+                                    <label for="usuarioEmpleado" class="form-label">Empleado</label>
+                                    <select class="form-select" id="usuarioEmpleado" required></select>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="button" class="btn btn-dark" id="btnGuardarUsuario">Guardar</button>
+                        </div>
                     </div>
                 </div>
             </div>
         </main>
     </div>
-
-    <div class="modal fade" id="modalUsuario" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header bg-dark text-white">
-                    <h5 class="modal-title" id="modalUsuarioLabel"><i class="bi bi-person-plus me-2"></i>Nuevo usuario</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="formUsuario">
-                        <input type="hidden" id="usuarioId">
-                        <div class="row g-3">
-                            <div class="col-12">
-                                <label for="usuarioUsername" class="form-label">Usuario (login) <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="usuarioUsername" required maxlength="50" placeholder="jperez">
-                            </div>
-                            <div class="col-12">
-                                <label for="usuarioPassword" class="form-label">Contrase&ntilde;a <span class="text-danger" id="pwdReq">*</span></label>
-                                <input type="password" class="form-control" id="usuarioPassword" maxlength="255" placeholder="(dejar vac&iacute;o para no cambiar)">
-                            </div>
-                            <div class="col-md-6">
-                                <label for="usuarioRol" class="form-label">Rol <span class="text-danger">*</span></label>
-                                <select class="form-select" id="usuarioRol" required name="rolesIdRol">
-                                    <option value="">-- Cargando... --</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="usuarioEstado" class="form-label">Estado</label>
-                                <select class="form-select" id="usuarioEstado" name="estadosIdEstado">
-                                    <option value="">-- Cargando... --</option>
-                                </select>
-                            </div>
-                            <div class="col-12">
-                                <label for="usuarioEmpleado" class="form-label">Empleado <span class="text-danger">*</span></label>
-                                <select class="form-select" id="usuarioEmpleado" required>
-                                    <option value="">-- Seleccionar empleado --</option>
-                                </select>
-                                <small class="text-muted">Un usuario por empleado. Empleados sin usuario aparecen primero.</small>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-primary" id="btnGuardarUsuario"><i class="bi bi-check-lg me-1"></i>Guardar</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <?php include __DIR__ . '/../../components/footer.php'; ?>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="<?php echo htmlspecialchars($basePath); ?>/js/app.js"></script>
+    <?php include __DIR__ . '/../../components/scripts_bootstrap.php'; ?>
+    <script src="<?php echo htmlspecialchars($basePath); ?>/js/services/api.js"></script>
     <script src="<?php echo htmlspecialchars($basePath); ?>/js/modules/usuarios.js"></script>
+    <script src="<?php echo htmlspecialchars($basePath); ?>/js/app.js"></script>
 </body>
 </html>

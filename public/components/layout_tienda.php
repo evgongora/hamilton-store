@@ -11,28 +11,6 @@ function MostrarCSS() {
     <link href="' . $base . '/css/styles.css" rel="stylesheet" />';
 }
 
-function layout_tienda_cliente_logueado() {
-    return !empty($_COOKIE['hamilton_cliente']) || (!empty($_SESSION['user']) && ($_SESSION['role'] ?? '') === 'cliente');
-}
-
-function layout_tienda_login_html($base) {
-    $logoutUrl = str_replace('/public', '/backend', $base) . '/api/auth_logout.php';
-    if (!empty($_SESSION['user'])) {
-        $nombre = htmlspecialchars($_SESSION['user']);
-        $role = $_SESSION['role'] ?? '';
-        $dashboard = in_array($role, ['admin', 'cajero', 'inventario'], true)
-            ? '<a class="btn btn-outline-primary btn-sm me-2" href="' . $base . '/pages/sistema/dashboard.php">Dashboard</a>'
-            : '';
-        return '<span class="text-muted me-2 small">' . $nombre . '</span>' . $dashboard . '<a class="btn btn-outline-secondary btn-sm" href="' . $logoutUrl . '">Cerrar sesión</a>';
-    }
-    if (!empty($_COOKIE['hamilton_cliente'])) {
-        $data = @json_decode($_COOKIE['hamilton_cliente'], true);
-        $nombre = isset($data['nombre'], $data['apellido']) ? htmlspecialchars($data['nombre'] . ' ' . $data['apellido']) : 'Cliente';
-        return '<span class="text-muted me-2 small">Hola, ' . $nombre . '</span><a class="btn btn-outline-secondary btn-sm" href="' . $logoutUrl . '">Cerrar sesión</a>';
-    }
-    return '<a class="btn btn-outline-secondary btn-sm me-2" href="' . $base . '/pages/tienda/registro.php">Crear cuenta</a><a class="btn btn-outline-secondary navbar-login-btn" href="' . $base . '/pages/auth/login.php">Iniciar sesión</a>';
-}
-
 function MostrarNavbar() {
     $base = '/hamilton-store/public';
     echo '<nav class="navbar navbar-expand-lg navbar-light bg-light">
@@ -59,14 +37,21 @@ function MostrarNavbar() {
                     <input class="form-control" id="productSearchInput" type="search" placeholder="Buscar productos" aria-label="Buscar productos" />
                 </form>
                 <div class="navbar-right-actions">' .
-                    (layout_tienda_cliente_logueado()
+                    ((($_SESSION['role'] ?? '') === 'cliente')
                         ? '<a class="btn btn-outline-dark navbar-cart-form" href="' . $base . '/pages/tienda/checkout.php">
                         <i class="bi-cart-fill me-1"></i>
                         Carrito
                         <span id="cartBadge" class="badge bg-dark text-white ms-1 rounded-pill">0</span>
                     </a>'
                         : '') .
-                    layout_tienda_login_html($base) . '
+                    (empty($_SESSION['user'])
+                        ? '<a class="btn btn-dark navbar-login-btn" href="' . $base . '/pages/auth/login.php"><i class="bi bi-box-arrow-in-right me-1"></i>Iniciar sesión</a>'
+                        : ('<span class="text-muted me-2 small">' . htmlspecialchars($_SESSION['user']) . '</span>' .
+                          (in_array($_SESSION['role'] ?? '', ['admin', 'cajero', 'inventario', 'soporte'], true)
+                              ? '<a class="btn btn-outline-primary btn-sm me-2" href="' . $base . '/pages/sistema/dashboard.php">Dashboard</a>'
+                              : '') .
+                          '<a class="btn btn-outline-secondary btn-sm" href="' . str_replace('/public', '/backend', $base) . '/api/auth_logout.php">Cerrar sesión</a>')
+                    ) . '
                 </div>
             </div>
         </div>
@@ -81,9 +66,18 @@ function MostrarFooter() {
 
 function MostrarJS() {
     $base = '/hamilton-store/public';
+    $paths = require __DIR__ . '/../../backend/config/paths.php';
+    $api = $paths['api'];
+    $puedeComprar = (($_SESSION['role'] ?? '') === 'cliente');
+    $loginUrl = $base . '/pages/auth/login.php';
+    echo '<script>window.API_BASE=' . json_encode($api, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) . ';'
+        . 'window.HAMILTON_TIENDA_PUEDE_COMPRAR=' . ($puedeComprar ? 'true' : 'false') . ';'
+        . 'window.HAMILTON_LOGIN_URL=' . json_encode($loginUrl, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) . ';</script>';
     echo '<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="' . $base . '/js/ui-dialog.js"></script>
+    <script src="' . $base . '/js/services/api.js"></script>
     <script src="' . $base . '/js/modules/tienda-carrito.js"></script>
-    <script src="' . $base . '/js/modules/tienda-productos.js?v=2"></script>
+    <script src="' . $base . '/js/modules/tienda-productos.js?v=4"></script>
     <script src="' . $base . '/js/scripts.js"></script>';
 }
 ?>

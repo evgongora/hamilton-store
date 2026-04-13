@@ -1,76 +1,98 @@
-/**
- * pagos.js - Registrar pagos y asociarlos a ventas (mock/localStorage)
- * Estructura alineada con BD: pagos.metodosPagoIdMetodoPago
- */
 (function () {
   'use strict';
 
-  const STORAGE_KEY = 'hamilton_ventas';
-  const basePath = (document.body.dataset.basePath || '/hamilton-store/public').replace(/\/$/, '');
-
-  function getVentas() {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-  }
-
-  function saveVentas(ventas) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(ventas));
+  function uiAlert(msg, title) {
+    if (window.UiDialog && window.UiDialog.alert) {
+      return window.UiDialog.alert(String(msg), { title: title || 'Pagos' });
+    }
+    alert(msg);
+    return Promise.resolve();
   }
 
   function formatMoney(n) {
     return '₡' + Number(n).toLocaleString('es-CR');
   }
 
-  function getClienteNombre(venta) {
-    if (venta.clienteNombre) return venta.clienteNombre;
-    if (venta.clientesIdCliente) return 'Cliente #' + venta.clientesIdCliente;
-    if (venta.clienteId) return 'Cliente #' + venta.clienteId;
-    return 'Sin cliente';
-  }
-
-  function getPagado(venta) {
-    return (venta.pagos || []).reduce((sum, p) => sum + p.monto, 0);
-  }
-
-  function getPendiente(venta) {
-    return venta.total - getPagado(venta);
+  function getPendiente(v) {
+    return (v.pendiente != null ? v.pendiente : v.total - (v.pagado || 0)) || 0;
   }
 
   function renderVentaSelect() {
-    const ventas = getVentas();
     const sel = document.getElementById('ventaSelect');
+    if (!sel) return;
+    const prev = sel.value;
+    const q = (document.getElementById('ventaFiltro') || { value: '' }).value.trim().toLowerCase();
     sel.innerHTML = '<option value="">-- Seleccionar venta --</option>';
-
-    ventas.forEach(v => {
+    (ventasCache || []).forEach(function (v) {
       const pend = getPendiente(v);
       if (pend <= 0) return;
+      if (q) {
+        const blob = ('#' + v.id + ' ' + (v.clienteNombre || 'Cliente')).toLowerCase();
+        if (blob.indexOf(q) === -1) return;
+      }
       const opt = document.createElement('option');
-      opt.value = v.id;
-      opt.textContent = `#${v.id} - ${getClienteNombre(v)} - ${formatMoney(v.total)} (pend: ${formatMoney(pend)})`;
+      opt.value = String(v.id);
+      opt.textContent =
+        '#' +
+        v.id +
+        ' — ' +
+        (v.clienteNombre || 'Cliente') +
+        ' — ' +
+        formatMoney(v.total) +
+        ' (pend: ' +
+        formatMoney(pend) +
+        ')';
       sel.appendChild(opt);
     });
+    if (prev && sel.querySelector('option[value="' + prev + '"]')) {
+      sel.value = prev;
+    }
+  }
+
+  function loadVentas() {
+    if (!window.Api) return Promise.resolve([]);
+    return window.Api
+      .get('/ventas_list.php')
+      .then(function (json) {
+        const data = json.data || [];
+        ventasCache = data;
+        renderVentaSelect();
+        return data;
+      })
+      .catch(function () {
+        ventasCache = [];
+        renderVentaSelect();
+        return [];
+      });
   }
 
   function loadMetodosPago() {
     const sel = document.getElementById('metodoPago');
-    if (!sel) return Promise.resolve();
-    return fetch(basePath + '/js/mocks/metodos_pago.json')
-      .then(r => r.ok ? r.json() : [])
-      .then(data => {
+    if (!sel) return Promise.resolve([]);
+    if (!window.Api) return Promise.resolve([]);
+    return window.Api
+      .get('/metodos_pago_list.php')
+      .then(function (json) {
+        const data = json.data || [];
         sel.innerHTML = '<option value="">-- Método --</option>';
-        data.forEach(m => {
+        data.forEach(function (m) {
           const opt = document.createElement('option');
-          opt.value = m.id;
+          opt.value = String(m.id);
           opt.textContent = m.nombre;
           sel.appendChild(opt);
         });
         return data;
       })
-      .catch(() => {});
+      .catch(function () {
+        sel.innerHTML = '<option value="">Error al cargar</option>';
+        return [];
+      });
   }
 
   function updateVentaDetalle(venta) {
     const detalle = document.getElementById('ventaDetalle');
     const btn = document.getElementById('btnRegistrarPago');
+    if (!detalle || !btn) return;
 
     if (!venta) {
       detalle.style.display = 'none';
@@ -78,7 +100,7 @@
       return;
     }
 
-    const pagado = getPagado(venta);
+    const pagado = venta.pagado != null ? venta.pagado : 0;
     const pendiente = getPendiente(venta);
 
     document.getElementById('ventaTotal').textContent = formatMoney(venta.total);
@@ -88,60 +110,96 @@
     btn.disabled = pendiente <= 0;
   }
 
+  let ventasCache = [];
+
   function registrarPago() {
     const ventaId = document.getElementById('ventaSelect').value;
     const metodoPagoId = document.getElementById('metodoPago').value;
     const montoStr = document.getElementById('montoPago').value;
 
-    if (!ventaId) return;
+    if (!ventaId || !window.Api) return;
     const monto = parseFloat(montoStr);
     if (isNaN(monto) || monto <= 0) {
-      alert('Ingrese un monto v&aacute;lido');
+      void uiAlert('Ingrese un monto válido');
       return;
     }
     if (!metodoPagoId) {
-      alert('Seleccione un m&eacute;todo de pago');
+      void uiAlert('Seleccione un método de pago');
       return;
     }
 
-    const ventas = getVentas();
-    const idx = ventas.findIndex(v => String(v.id) === ventaId);
-    if (idx < 0) {
-      alert('Venta no encontrada');
+    const venta = ventasCache.find(function (v) {
+      return String(v.id) === ventaId;
+    });
+    if (!venta) {
+      void uiAlert('Venta no encontrada');
       return;
     }
-
-    const venta = ventas[idx];
     const pendiente = getPendiente(venta);
     if (monto > pendiente) {
-      alert('El monto no puede ser mayor al pendiente: ' + formatMoney(pendiente));
+      void uiAlert('El monto no puede ser mayor al pendiente: ' + formatMoney(pendiente));
       return;
     }
 
-    venta.pagos = venta.pagos || [];
-    venta.pagos.push({
-      monto: monto,
-      fechaPago: new Date().toISOString(),
-      metodosPagoIdMetodoPago: parseInt(metodoPagoId, 10)
-    });
-    saveVentas(ventas);
+    const fechaPago = new Date().toISOString().slice(0, 10);
+    const btn = document.getElementById('btnRegistrarPago');
+    if (btn) btn.disabled = true;
 
-    document.getElementById('montoPago').value = '';
-    updateVentaDetalle(venta);
-    renderVentaSelect();
-
-    if (getPendiente(venta) <= 0) {
-      document.getElementById('ventaSelect').value = '';
-      updateVentaDetalle(null);
-      alert('Pago registrado. Venta saldada.');
-    } else {
-      alert('Pago registrado correctamente.');
-    }
+    window.Api
+      .post('/pagos_create.php', {
+        action: 'insert',
+        monto: monto,
+        fechaPago: fechaPago,
+        idMetodoPago: parseInt(metodoPagoId, 10),
+        idVenta: parseInt(ventaId, 10)
+      })
+      .then(function () {
+        document.getElementById('montoPago').value = '';
+        return loadVentas();
+      })
+      .then(function () {
+        const still = ventasCache.find(function (v) {
+          return String(v.id) === ventaId;
+        });
+        const sel = document.getElementById('ventaSelect');
+        if (sel) {
+          sel.value = still && getPendiente(still) > 0 ? ventaId : '';
+        }
+        updateVentaDetalle(still && getPendiente(still) > 0 ? still : null);
+        if (!still || getPendiente(still) <= 0) {
+          return uiAlert('Pago registrado. Venta saldada.', 'Listo');
+        }
+        return uiAlert('Pago registrado correctamente.', 'Listo');
+      })
+      .catch(function (e) {
+        void uiAlert('Error: ' + (e.message || String(e)), 'Error');
+      })
+      .finally(function () {
+        const vsel = document.getElementById('ventaSelect');
+        const v = ventasCache.find(function (x) {
+          return String(x.id) === (vsel && vsel.value);
+        });
+        if (btn) btn.disabled = !v || getPendiente(v) <= 0;
+      });
   }
 
   document.addEventListener('DOMContentLoaded', function () {
-    loadMetodosPago().then(() => {});
-    renderVentaSelect();
+    loadMetodosPago();
+    loadVentas();
+
+    document.getElementById('ventaFiltro')?.addEventListener('input', function () {
+      renderVentaSelect();
+      const sel = document.getElementById('ventaSelect');
+      const ventaId = sel && sel.value;
+      if (!ventaId) {
+        updateVentaDetalle(null);
+        return;
+      }
+      const venta = ventasCache.find(function (v) {
+        return String(v.id) === ventaId;
+      });
+      updateVentaDetalle(venta || null);
+    });
 
     document.getElementById('ventaSelect')?.addEventListener('change', function () {
       const ventaId = this.value;
@@ -149,8 +207,9 @@
         updateVentaDetalle(null);
         return;
       }
-      const ventas = getVentas();
-      const venta = ventas.find(v => String(v.id) === ventaId);
+      const venta = ventasCache.find(function (v) {
+        return String(v.id) === ventaId;
+      });
       updateVentaDetalle(venta || null);
     });
 

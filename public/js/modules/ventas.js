@@ -1,64 +1,69 @@
 /**
- * ventas.js - Punto de venta: búsqueda, carrito, totales, confirmar venta (mock/localStorage)
+ * ventas.js - Punto de venta: búsqueda, carrito, totales, confirmar venta
  */
 (function () {
   'use strict';
 
-  const STORAGE_KEY = 'hamilton_ventas';
+  function uiAlert(msg, title) {
+    if (window.UiDialog && window.UiDialog.alert) {
+      return window.UiDialog.alert(String(msg), { title: title || 'Aviso' });
+    }
+    alert(msg);
+    return Promise.resolve();
+  }
+
   const basePath = (document.body.dataset.basePath || '/hamilton-store/public').replace(/\/$/, '');
 
   let productos = [];
   let clientes = [];
   let carrito = [];
 
-  function fetchJson(path) {
-    return fetch(basePath + path).then(r => {
-      if (!r.ok) throw new Error('Error cargando ' + path);
-      return r.json();
-    });
-  }
-
   function formatMoney(n) {
     return '₡' + Number(n).toLocaleString('es-CR');
   }
 
   function loadProductos() {
-    return fetchJson('/js/mocks/productos.json').then(data => {
-      productos = data;
-      return productos;
-    });
-  }
-
-  function fillClienteSelect() {
-    const sel = document.getElementById('clienteSelect');
-    if (!sel) return;
-    sel.innerHTML = '<option value="">-- Seleccionar cliente --</option>';
-    clientes.forEach(c => {
-      const opt = document.createElement('option');
-      opt.value = c.id;
-      const nombreCompleto = [c.nombre, c.apellido].filter(Boolean).join(' ');
-      opt.textContent = nombreCompleto;
-      sel.appendChild(opt);
-    });
+    if (!window.Api) {
+      productos = [];
+      return Promise.resolve(productos);
+    }
+    return window.Api
+      .get('/productos_list.php')
+      .then(function (json) {
+        productos = json.data || [];
+        return productos;
+      })
+      .catch(function () {
+        productos = [];
+        return productos;
+      });
   }
 
   function loadClientes() {
-    const stored = localStorage.getItem('hamilton_clientes');
-    if (stored) {
-      try {
-        const data = JSON.parse(stored);
-        if (data.length > 0) {
-          clientes = data;
-          fillClienteSelect();
-          return Promise.resolve(clientes);
-        }
-      } catch (e) {}
+    if (!window.Api) {
+      clientes = [];
+      return Promise.resolve(clientes);
     }
-    return fetchJson('/js/mocks/clientes.json').then(data => {
-      clientes = data;
-      fillClienteSelect();
-      return clientes;
-    });
+    return window.Api
+      .get('/clientes_list.php')
+      .then(function (json) {
+        clientes = json.data || [];
+        const sel = document.getElementById('clienteSelect');
+        if (sel) {
+          sel.innerHTML = '<option value="">-- Seleccionar cliente --</option>';
+          clientes.forEach(function (c) {
+            const opt = document.createElement('option');
+            opt.value = c.id;
+            opt.textContent = [c.nombre, c.apellido].filter(Boolean).join(' ');
+            sel.appendChild(opt);
+          });
+        }
+        return clientes;
+      })
+      .catch(function () {
+        clientes = [];
+        return clientes;
+      });
   }
 
   function searchProducts(term) {
@@ -167,40 +172,56 @@
   }
 
   function confirmarVenta() {
-    const clienteId = document.getElementById('clienteSelect').value;
-    const cliente = clientes.find(c => String(c.id) === clienteId);
-    const clienteNombre = cliente ? [cliente.nombre, cliente.apellido].filter(Boolean).join(' ') : 'Sin asignar';
+    const clienteIdStr = document.getElementById('clienteSelect').value;
+    if (!clienteIdStr) {
+      void uiAlert('Seleccione un cliente.', 'Punto de venta');
+      return;
+    }
+    if (carrito.length === 0) {
+      void uiAlert('El carrito está vacío.', 'Punto de venta');
+      return;
+    }
+    if (!window.Api) {
+      void uiAlert('API no disponible.', 'Error');
+      return;
+    }
 
-    const total = getTotal();
-    const venta = {
-      id: Date.now(),
-      fecha: new Date().toISOString(),
-      total,
-      clientesIdCliente: clienteId ? parseInt(clienteId, 10) : null,
-      clienteNombre: clienteNombre,
-      empleadosIdEmpleado: 1,
-      origen: 'sistema',
-      items: carrito.map(i => ({
-        productosIdProducto: i.productoId,
-        nombre: i.nombre,
+    const clienteId = parseInt(clienteIdStr, 10);
+    const fechaVenta = new Date().toISOString().slice(0, 10);
+    const lineas = carrito.map(function (i) {
+      return {
+        productoId: i.productoId,
         cantidad: i.cantidad,
         precioUnitario: i.precioUnitario,
         subtotal: i.subtotal
-      })),
-      pagos: []
-    };
+      };
+    });
 
-    const ventas = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-    ventas.push(venta);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(ventas));
+    const btn = document.getElementById('btnConfirmarVenta');
+    if (btn) btn.disabled = true;
 
-    carrito = [];
-    document.getElementById('clienteSelect').value = '';
-    renderCart();
-    document.getElementById('productSearch').value = '';
-    document.getElementById('productResults').innerHTML = '';
-
-    alert('Venta registrada correctamente. Total: ' + formatMoney(venta.total));
+    window.Api
+      .post('/ventas_create.php', {
+        fechaVenta: fechaVenta,
+        clienteId: clienteId,
+        lineas: lineas
+      })
+      .then(function (res) {
+        carrito = [];
+        document.getElementById('clienteSelect').value = '';
+        renderCart();
+        document.getElementById('productSearch').value = '';
+        document.getElementById('productResults').innerHTML = '';
+        const msg =
+          'Venta registrada. ID venta: ' + (res.idVenta || '') + (res.message ? ' — ' + res.message : '');
+        return uiAlert(msg, 'Venta registrada');
+      })
+      .catch(function (e) {
+        void uiAlert('No se pudo registrar la venta: ' + (e.message || String(e)), 'Error');
+      })
+      .finally(function () {
+        if (btn) btn.disabled = carrito.length === 0;
+      });
   }
 
   function renderProductResults(results) {
@@ -234,8 +255,26 @@
   }
 
   document.addEventListener('DOMContentLoaded', function () {
-    loadProductos().catch(() => { productos = []; });
-    loadClientes().catch(() => { clientes = []; });
+    const productResults = document.getElementById('productResults');
+    if (productResults) {
+      productResults.innerHTML =
+        '<div class="d-flex justify-content-center py-3"><div class="spinner-border spinner-border-sm text-secondary" role="status"><span class="visually-hidden">Cargando</span></div></div>';
+    }
+
+    loadProductos()
+      .catch(function () {
+        productos = [];
+      })
+      .then(function () {
+        if (productResults) {
+          productResults.innerHTML =
+            '<div class="list-group-item text-muted">Escriba al menos 2 caracteres para buscar productos.</div>';
+        }
+      });
+
+    loadClientes().catch(function () {
+      clientes = [];
+    });
 
     const searchInput = document.getElementById('productSearch');
     searchInput.addEventListener('input', function () {

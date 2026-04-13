@@ -2,10 +2,17 @@
 /vendor/
 /node_modules/
 
-# Config local
+# Config local (versionar solo .env.example)
 .env
-.env.local
+.env.*
+!.env.example
 *.local.php
+
+# Oracle Cloud wallet (certificados; no versionar). Carpeta fija del proyecto:
+backend/config/oracle-wallet/*
+!backend/config/oracle-wallet/README
+# Carpetas antiguas / nombres sueltos del ZIP:
+backend/config/Wallet*/
 
 # Logs
 *.log

@@ -1,10 +1,18 @@
 /**
- * auth-cliente.js - Registro y login de clientes (mock, sin BD)
- * Crea cliente en hamilton_clientes, usa cookie para sesión
- * Campo password solo en mock (no existe en tabla clientes)
+ * auth-cliente.js - Cookie local legacy (checkout / demos).
+ * Registro real de clientes: public/pages/auth/registro_cliente.php → auth_register_cliente.php (Oracle).
+ * Login unificado: public/pages/auth/login.php → auth_login.php (sesión PHP).
  */
 (function () {
   'use strict';
+
+  function uiAlert(msg, title) {
+    if (window.UiDialog && window.UiDialog.alert) {
+      return window.UiDialog.alert(String(msg), { title: title || 'Cuenta' });
+    }
+    alert(msg);
+    return Promise.resolve();
+  }
 
   const STORAGE_CLIENTES = 'hamilton_clientes';
   const COOKIE_NAME = 'hamilton_cliente';
@@ -47,7 +55,7 @@
     registrar(data) {
       const { nombre, apellido, email, telefono, password } = data;
       if (!nombre || !apellido || !email || !telefono || !password) {
-        alert('Complete todos los campos.');
+        void uiAlert('Complete todos los campos.');
         return;
       }
 
@@ -58,12 +66,14 @@
           existe.password = password;
           saveClientes(clientes);
           setClienteCookie(existe);
-          alert('Contraseña establecida. Ya puedes comprar.');
-          window.location.href = '/hamilton-store/public/pages/tienda/Homepage.php';
+          uiAlert('Contraseña establecida. Ya puedes comprar.', 'Listo').then(function () {
+            window.location.href = '/hamilton-store/public/pages/tienda/Homepage.php';
+          });
           return;
         }
-        alert('Ya existe una cuenta con ese email. Inicia sesión.');
-        window.location.href = '/hamilton-store/public/pages/auth/login.php';
+        uiAlert('Ya existe una cuenta con ese email. Inicia sesión.', 'Cuenta existente').then(function () {
+          window.location.href = '/hamilton-store/public/pages/auth/login.php';
+        });
         return;
       }
 
@@ -83,19 +93,20 @@
       saveClientes(clientes);
 
       setClienteCookie(nuevo);
-      alert('¡Cuenta creada! Ya puedes comprar.');
-      window.location.href = '/hamilton-store/public/pages/tienda/Homepage.php';
+      uiAlert('¡Cuenta creada! Ya puedes comprar.', 'Listo').then(function () {
+        window.location.href = '/hamilton-store/public/pages/tienda/Homepage.php';
+      });
     },
 
     login(email, password) {
       const clientes = getClientes();
       const c = clientes.find(x => (x.email || '').toLowerCase() === email.toLowerCase());
       if (!c) {
-        alert('Email o contraseña incorrectos.');
+        void uiAlert('Email o contraseña incorrectos.', 'Error');
         return false;
       }
       if ((c.password || '') !== password) {
-        alert('Email o contraseña incorrectos.');
+        void uiAlert('Email o contraseña incorrectos.', 'Error');
         return false;
       }
       setClienteCookie(c);

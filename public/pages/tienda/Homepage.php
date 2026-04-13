@@ -1,14 +1,24 @@
-<?php include_once $_SERVER["DOCUMENT_ROOT"] . "/hamilton-store/public/components/layout_tienda.php"; ?>
-
+<?php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+$basePath = dirname(dirname(dirname($_SERVER['SCRIPT_NAME'])));
+if ($basePath === '/' || $basePath === '\\') {
+    $basePath = '';
+}
+$loggedIn = !empty($_SESSION['user']);
+$loginUrl = $basePath . '/pages/auth/login.php';
+$registroUrl = $basePath . '/pages/auth/registro_cliente.php';
+require_once __DIR__ . '/../../components/layout_tienda.php';
+?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
     <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
-        <meta name="description" content="" />
-        <meta name="author" content="" />
-        <title>Inicio</title>
-        <link rel="icon" type="image/x-icon" href="/hamilton-store/public/assets/img/favicon.png" />
+        <meta name="description" content="M. Hamilton Store — electrónica y más" />
+        <title>Inicio - M. Hamilton Store</title>
+        <link rel="icon" type="image/x-icon" href="<?php echo htmlspecialchars($basePath); ?>/assets/img/favicon.png" />
         <?php MostrarCSS(); ?>
     </head>
     <body>
@@ -18,7 +28,21 @@
             <div class="container px-4 px-lg-5 my-5">
                 <div class="text-center text-white">
                     <h1 class="display-4 fw-bolder">Bienvenido a M. Hamilton Store</h1>
-                    <p class="lead fw-normal text-white-50 mb-4">La tienda perfecta para tus compras de electr&oacute;nicos</p>
+                    <p class="lead fw-normal text-white-50 mb-0">La tienda perfecta para tus compras de electr&oacute;nicos</p>
+                    <?php if (!$loggedIn): ?>
+                    <div class="d-flex flex-wrap justify-content-center gap-3 mt-4">
+                        <a class="btn btn-light btn-lg px-4 shadow-sm" href="<?php echo htmlspecialchars($loginUrl); ?>">
+                            <i class="bi bi-box-arrow-in-right me-2"></i>Iniciar sesi&oacute;n
+                        </a>
+                        <a class="btn btn-outline-light btn-lg px-4" href="<?php echo htmlspecialchars($registroUrl); ?>">
+                            Crear cuenta
+                        </a>
+                    </div>
+                    <?php else: ?>
+                    <p class="text-white-50 mt-4 mb-0">
+                        Hola, <strong><?php echo htmlspecialchars((string) ($_SESSION['user'] ?? '')); ?></strong>. Segu&iacute; navegando o revis&aacute; tu carrito.
+                    </p>
+                    <?php endif; ?>
                 </div>
             </div>
         </header>

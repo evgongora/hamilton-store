@@ -5,6 +5,14 @@
 (function () {
   'use strict';
 
+  function uiAlert(msg, title) {
+    if (window.UiDialog && window.UiDialog.alert) {
+      return window.UiDialog.alert(String(msg), { title: title || 'Checkout' });
+    }
+    alert(msg);
+    return Promise.resolve();
+  }
+
   const STORAGE_VENTAS = 'hamilton_ventas';
   const basePath = '/hamilton-store/public';
 
@@ -98,27 +106,34 @@
   }
 
   function getClienteActual() {
+    const s = window.HAMILTON_CHECKOUT_CLIENTE;
+    if (s && typeof s.id === 'number') {
+      return s;
+    }
     if (typeof window.AuthCliente !== 'undefined' && window.AuthCliente.getClienteActual) {
-      return window.AuthCliente.getClienteActual();
+      const c = window.AuthCliente.getClienteActual();
+      if (c) return c;
     }
     const m = document.cookie.match(/(^| )hamilton_cliente=([^;]+)/);
     if (!m) return null;
     try {
       return JSON.parse(decodeURIComponent(m[2]));
-    } catch (e) { return null; }
+    } catch (e) {
+      return null;
+    }
   }
 
   function procesarPago() {
     if (!window.TiendaCarrito) return;
     const items = window.TiendaCarrito.getItems();
     if (items.length === 0) {
-      alert('El carrito est\u00e1 vac\u00edo');
+      void uiAlert('El carrito está vacío');
       return;
     }
 
     const metodoPagoId = document.getElementById('metodoPago')?.value;
     if (!metodoPagoId) {
-      alert('Seleccione un m\u00e9todo de pago');
+      void uiAlert('Seleccione un método de pago');
       return;
     }
 
@@ -163,10 +178,13 @@
     });
 
     document.getElementById('btnPagar')?.addEventListener('click', function () {
-      this.disabled = true;
-      this.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Procesando...';
+      const btn = this;
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Procesando...';
       setTimeout(function () {
         procesarPago();
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-lock-fill me-2"></i>Pagar ahora';
       }, 800);
     });
 

@@ -1,46 +1,29 @@
 /**
- * usuarios.js - CRUD usuarios (vinculados a empleados)
- * localStorage hamilton_usuarios, seed desde usuarios.json
+ * usuarios.js — CRUD usuarios Oracle (pkg_usuarios), usuarios de empleado.
  */
 (function () {
   'use strict';
 
-  const STORAGE_KEY = 'hamilton_usuarios';
-  const STORAGE_EMPLEADOS = 'hamilton_empleados';
-  const basePath = (document.body.dataset.basePath || '/hamilton-store/public').replace(/\/$/, '');
-
-  let roles = [];
-  let estados = [];
-  let modalInstance = null;
-
-  function fetchJson(path) {
-    return fetch(basePath + path).then(r => (r.ok ? r.json() : Promise.reject()));
+  function uiAlert(msg, title) {
+    if (window.UiDialog && window.UiDialog.alert) {
+      return window.UiDialog.alert(String(msg), { title: title || 'Usuarios' });
+    }
+    alert(msg);
+    return Promise.resolve();
   }
 
-  function getEmpleados() {
-    try {
-      return JSON.parse(localStorage.getItem(STORAGE_EMPLEADOS) || '[]');
-    } catch (e) { return []; }
+  function uiConfirm(msg, title) {
+    if (window.UiDialog && window.UiDialog.confirm) {
+      return window.UiDialog.confirm(String(msg), { title: title || 'Confirmar' });
+    }
+    return Promise.resolve(confirm(msg));
   }
 
-  function getUsuarios() {
-    try {
-      return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-    } catch (e) { return []; }
-  }
-
-  function saveUsuarios(arr) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
-    renderTable();
-  }
-
-  function seed() {
-    if (getUsuarios().length > 0) return Promise.resolve();
-    return fetchJson('/js/mocks/usuarios.json').then(data => {
-      saveUsuarios(data);
-      return data;
-    }).catch(() => []);
-  }
+  var usuarios = [];
+  var empleados = [];
+  var roles = [];
+  var estados = [];
+  var modalInstance = null;
 
   function escapeHtml(s) {
     const div = document.createElement('div');
@@ -49,21 +32,26 @@
   }
 
   function getRolNombre(rolId) {
-    const r = roles.find(x => x.id === rolId);
+    const r = roles.find(function (x) {
+      return x.id === rolId;
+    });
     return r ? r.nombre : '—';
   }
 
   function getEstadoNombre(estadoId) {
-    const e = estados.find(x => x.id === estadoId);
-    return e ? e.nombre : (estadoId === 1 ? 'activo' : estadoId === 2 ? 'inactivo' : '—');
+    const e = estados.find(function (x) {
+      return x.id === estadoId;
+    });
+    return e ? e.nombre : '—';
   }
 
   function llenarRolesSelect() {
     const sel = document.getElementById('usuarioRol');
+    if (!sel) return;
     sel.innerHTML = '<option value="">-- Seleccionar --</option>';
-    roles.filter(r => r.id <= 3).forEach(r => {
+    roles.forEach(function (r) {
       const opt = document.createElement('option');
-      opt.value = r.id;
+      opt.value = String(r.id);
       opt.textContent = r.nombre;
       sel.appendChild(opt);
     });
@@ -71,184 +59,291 @@
 
   function llenarEstadosSelect() {
     const sel = document.getElementById('usuarioEstado');
+    if (!sel) return;
     sel.innerHTML = '<option value="">-- Seleccionar --</option>';
-    estados.forEach(e => {
+    estados.forEach(function (e) {
       const opt = document.createElement('option');
-      opt.value = e.id;
+      opt.value = String(e.id);
       opt.textContent = e.nombre;
       sel.appendChild(opt);
     });
   }
 
-  function getEmpleadoNombre(empId) {
-    const emp = getEmpleados().find(e => e.id === empId);
-    return emp ? [emp.nombre, emp.apellido].filter(Boolean).join(' ') : '—';
-  }
-
-  function renderTable() {
-    const usr = getUsuarios();
-    const emp = getEmpleados();
-    const tbody = document.getElementById('usuariosBody');
-    const empty = document.getElementById('usuariosEmpty');
-    const count = document.getElementById('usuariosCount');
-
-    tbody.innerHTML = '';
-    count.textContent = usr.length + ' usuario(s)';
-
-    if (usr.length === 0) {
-      empty.style.display = 'block';
-      return;
-    }
-    empty.style.display = 'none';
-
-    usr.forEach(u => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${escapeHtml(u.username)}</td>
-        <td><span class="badge bg-dark">${escapeHtml(getRolNombre(u.rolesIdRol) || u.rol)}</span></td>
-        <td>${escapeHtml(getEmpleadoNombre(u.empleadosIdEmpleado))}</td>
-        <td><span class="badge ${(u.estadosIdEstado === 1 || u.estado === 'activo') ? 'bg-success' : 'bg-secondary'}">${escapeHtml(getEstadoNombre(u.estadosIdEstado) || u.estado)}</span></td>
-        <td class="text-end">
-          <button type="button" class="btn btn-outline-primary btn-sm me-1 btn-editar" data-id="${u.id}" title="Editar"><i class="bi bi-pencil"></i></button>
-          <button type="button" class="btn btn-outline-danger btn-sm btn-eliminar" data-id="${u.id}" title="Eliminar"><i class="bi bi-trash"></i></button>
-        </td>
-      `;
-      tbody.appendChild(tr);
-    });
-
-    tbody.querySelectorAll('.btn-editar').forEach(b => b.addEventListener('click', () => abrirEditar(parseInt(b.dataset.id, 10))));
-    tbody.querySelectorAll('.btn-eliminar').forEach(b => b.addEventListener('click', () => eliminar(parseInt(b.dataset.id, 10))));
-  }
-
-  function llenarEmpleadosSelect(editingEmpId) {
+  function llenarEmpleadosSelect(editingEmpId, editingUserId) {
     const sel = document.getElementById('usuarioEmpleado');
-    const usuarios = getUsuarios();
-    const empleados = getEmpleados();
+    if (!sel) return;
 
     sel.innerHTML = '<option value="">-- Seleccionar empleado --</option>';
-    const empConUsuario = new Set(usuarios.map(u => u.empleadosIdEmpleado));
+    const empConOtroUsuario = new Set();
+    usuarios.forEach(function (u) {
+      if (u.id === editingUserId) return;
+      if (u.empleadosIdEmpleado != null) {
+        empConOtroUsuario.add(u.empleadosIdEmpleado);
+      }
+    });
 
-    empleados.forEach(e => {
-      const disponible = !empConUsuario.has(e.id) || e.id === editingEmpId;
+    empleados.forEach(function (e) {
+      const disponible = !empConOtroUsuario.has(e.id) || e.id === editingEmpId;
       if (!disponible) return;
       const opt = document.createElement('option');
-      opt.value = e.id;
+      opt.value = String(e.id);
       opt.textContent = [e.nombre, e.apellido].filter(Boolean).join(' ');
       sel.appendChild(opt);
     });
   }
 
+  function renderTable() {
+    const tbody = document.getElementById('usuariosBody');
+    const empty = document.getElementById('usuariosEmpty');
+    const count = document.getElementById('usuariosCount');
+    if (!tbody || !empty || !count) return;
+
+    tbody.innerHTML = '';
+    count.textContent = usuarios.length + ' usuario(s)';
+
+    if (usuarios.length === 0) {
+      empty.style.display = 'block';
+      return;
+    }
+    empty.style.display = 'none';
+
+    usuarios.forEach(function (u) {
+      const staff = u.esUsuarioEmpleado === true;
+      const tr = document.createElement('tr');
+      const rolLabel = u.rolNombre || getRolNombre(u.rolesIdRol);
+      const empLabel = staff
+        ? u.empleadoNombre || '—'
+        : '<span class="text-muted">(cliente tienda)</span>';
+      const estLabel = u.estadoNombre || getEstadoNombre(u.estadosIdEstado);
+      const badgeEst =
+        String(estLabel || '')
+          .toUpperCase()
+          .indexOf('ACTIVO') !== -1
+          ? 'bg-success'
+          : 'bg-secondary';
+      const acciones = staff
+        ? '<button type="button" class="btn btn-outline-primary btn-sm me-1 btn-editar" data-id="' +
+          u.id +
+          '" title="Editar"><i class="bi bi-pencil"></i></button>' +
+          '<button type="button" class="btn btn-outline-danger btn-sm btn-eliminar" data-id="' +
+          u.id +
+          '" title="Eliminar"><i class="bi bi-trash"></i></button>'
+        : '<span class="text-muted small">Solo lectura</span>';
+
+      tr.innerHTML =
+        '<td>' +
+        escapeHtml(u.username) +
+        '</td><td><span class="badge bg-dark">' +
+        escapeHtml(rolLabel) +
+        '</span></td><td>' +
+        (staff ? escapeHtml(empLabel) : empLabel) +
+        '</td><td><span class="badge ' +
+        badgeEst +
+        '">' +
+        escapeHtml(estLabel) +
+        '</span></td><td class="text-end">' +
+        acciones +
+        '</td>';
+      tbody.appendChild(tr);
+    });
+
+    tbody.querySelectorAll('.btn-editar').forEach(function (b) {
+      b.addEventListener('click', function () {
+        abrirEditar(parseInt(b.getAttribute('data-id'), 10));
+      });
+    });
+    tbody.querySelectorAll('.btn-eliminar').forEach(function (b) {
+      b.addEventListener('click', function () {
+        eliminar(parseInt(b.getAttribute('data-id'), 10));
+      });
+    });
+  }
+
   function abrirNuevo() {
-    document.getElementById('modalUsuarioLabel').innerHTML = '<i class="bi bi-person-plus me-2"></i>Nuevo usuario';
+    document.getElementById('modalUsuarioLabel').innerHTML =
+      '<i class="bi bi-person-plus me-2"></i>Nuevo usuario';
     document.getElementById('formUsuario').reset();
     document.getElementById('usuarioId').value = '';
     document.getElementById('usuarioPassword').required = true;
     document.getElementById('pwdReq').style.display = '';
     llenarRolesSelect();
     llenarEstadosSelect();
-    llenarEmpleadosSelect();
-    document.getElementById('usuarioRol').value = 2;
-    document.getElementById('usuarioEstado').value = 1;
+    llenarEmpleadosSelect(null, null);
+    if (roles.length) {
+      const cajero = roles.find(function (r) {
+        return String(r.nombre || '')
+          .toUpperCase()
+          .indexOf('CAJERO') !== -1;
+      });
+      document.getElementById('usuarioRol').value = String(
+        (cajero || roles[0]).id
+      );
+    }
+    const activo = estados.find(function (e) {
+      return String(e.nombre || '')
+        .toUpperCase()
+        .indexOf('ACTIVO') !== -1;
+    });
+    if (activo) {
+      document.getElementById('usuarioEstado').value = String(activo.id);
+    } else if (estados.length) {
+      document.getElementById('usuarioEstado').value = String(estados[0].id);
+    }
     modalInstance = new bootstrap.Modal(document.getElementById('modalUsuario'));
     modalInstance.show();
   }
 
   function abrirEditar(id) {
-    const u = getUsuarios().find(x => x.id === id);
-    if (!u) return;
+    const u = usuarios.find(function (x) {
+      return x.id === id;
+    });
+    if (!u || !u.esUsuarioEmpleado) {
+      void uiAlert('Este usuario no se puede editar desde esta pantalla.');
+      return;
+    }
 
-    document.getElementById('modalUsuarioLabel').innerHTML = '<i class="bi bi-pencil me-2"></i>Editar usuario';
-    document.getElementById('usuarioId').value = u.id;
-    document.getElementById('usuarioUsername').value = u.username;
+    document.getElementById('modalUsuarioLabel').innerHTML =
+      '<i class="bi bi-pencil me-2"></i>Editar usuario';
+    document.getElementById('usuarioId').value = String(u.id);
+    document.getElementById('usuarioUsername').value = u.username || '';
     document.getElementById('usuarioPassword').value = '';
     document.getElementById('usuarioPassword').required = false;
     document.getElementById('pwdReq').style.display = 'none';
     llenarRolesSelect();
     llenarEstadosSelect();
-    document.getElementById('usuarioRol').value = u.rolesIdRol || (u.rol === 'admin' ? 1 : u.rol === 'inventario' ? 3 : 2);
-    document.getElementById('usuarioEstado').value = u.estadosIdEstado || (u.estado === 'inactivo' ? 2 : 1);
-    llenarEmpleadosSelect(u.empleadosIdEmpleado);
-    document.getElementById('usuarioEmpleado').value = u.empleadosIdEmpleado;
+    llenarEmpleadosSelect(u.empleadosIdEmpleado, u.id);
+    document.getElementById('usuarioRol').value = String(u.rolesIdRol || '');
+    document.getElementById('usuarioEstado').value = String(u.estadosIdEstado || '');
+    document.getElementById('usuarioEmpleado').value = String(u.empleadosIdEmpleado || '');
 
     modalInstance = new bootstrap.Modal(document.getElementById('modalUsuario'));
     modalInstance.show();
   }
 
   function guardar() {
-    const id = document.getElementById('usuarioId').value ? parseInt(document.getElementById('usuarioId').value, 10) : null;
+    if (!window.Api) {
+      void uiAlert('API no disponible.', 'Error');
+      return;
+    }
+    const idVal = document.getElementById('usuarioId').value;
+    const id = idVal ? parseInt(idVal, 10) : null;
     const username = document.getElementById('usuarioUsername').value.trim().toLowerCase();
     const password = document.getElementById('usuarioPassword').value;
-    const rolesIdRol = parseInt(document.getElementById('usuarioRol').value, 10) || 2;
-    const estadosIdEstado = parseInt(document.getElementById('usuarioEstado').value, 10) || 1;
-    const empId = parseInt(document.getElementById('usuarioEmpleado').value, 10);
+    const idRol = parseInt(document.getElementById('usuarioRol').value, 10);
+    const idEstado = parseInt(document.getElementById('usuarioEstado').value, 10);
+    const idEmpleado = parseInt(document.getElementById('usuarioEmpleado').value, 10);
 
-    if (!username || !empId) {
-      alert('Complete usuario y empleado.');
+    if (!username || !idRol || !idEstado || !idEmpleado) {
+      void uiAlert('Complete usuario, rol, estado y empleado.');
       return;
     }
 
     if (!id && !password) {
-      alert('La contraseña es obligatoria para nuevos usuarios.');
+      void uiAlert('La contraseña es obligatoria para usuarios nuevos.');
       return;
     }
 
-    const arr = getUsuarios();
-    const otroConMismoUser = arr.find(x => x.username === username && x.id !== id);
-    if (otroConMismoUser) {
-      alert('Ya existe un usuario con ese nombre.');
-      return;
-    }
-
-    const otroConMismoEmp = arr.find(x => x.empleadosIdEmpleado === empId && x.id !== id);
-    if (otroConMismoEmp) {
-      alert('Ese empleado ya tiene un usuario asignado.');
-      return;
+    const body = {
+      username: username,
+      idRol: idRol,
+      idEstado: idEstado,
+      idEmpleado: idEmpleado,
+    };
+    if (password) {
+      body.password = password;
     }
 
     if (id) {
-      const idx = arr.findIndex(x => x.id === id);
-      if (idx >= 0) {
-        arr[idx] = { ...arr[idx], username, rolesIdRol, estadosIdEstado, empleadosIdEmpleado: empId };
-        if (password) arr[idx].passwordEncriptado = password;
-        saveUsuarios(arr);
-        modalInstance.hide();
-        return;
-      }
+      body.action = 'update';
+      body.id = id;
+    } else {
+      body.action = 'insert';
+      body.password = password;
     }
 
-    const maxId = Math.max(0, ...arr.map(x => x.id || 0)) + 1;
-    arr.push({
-      id: maxId,
-      username,
-      passwordEncriptado: password || 'temp',
-      rolesIdRol,
-      estadosIdEstado,
-      empleadosIdEmpleado: empId
-    });
-    saveUsuarios(arr);
-    modalInstance.hide();
+    const btn = document.getElementById('btnGuardarUsuario');
+    if (btn) btn.disabled = true;
+
+    window.Api
+      .post('/usuarios_save.php', body)
+      .then(function () {
+        if (modalInstance) modalInstance.hide();
+        return loadUsuarios();
+      })
+      .then(function () {
+        return uiAlert(
+          body.action === 'insert' ? 'Usuario creado.' : 'Usuario actualizado.',
+          'Listo'
+        );
+      })
+      .catch(function (e) {
+        void uiAlert(String(e.message || e), 'Error');
+      })
+      .finally(function () {
+        if (btn) btn.disabled = false;
+      });
   }
 
   function eliminar(id) {
-    if (!confirm('¿Eliminar este usuario?')) return;
-    const arr = getUsuarios().filter(x => x.id !== id);
-    saveUsuarios(arr);
+    const u = usuarios.find(function (x) {
+      return x.id === id;
+    });
+    if (!u || !u.esUsuarioEmpleado) {
+      void uiAlert('Este usuario no se puede eliminar desde esta pantalla.');
+      return;
+    }
+    uiConfirm('¿Eliminar este usuario?', 'Eliminar usuario').then(function (ok) {
+      if (!ok || !window.Api) return;
+      window.Api
+        .post('/usuarios_save.php', { action: 'delete', id: id })
+        .then(function () {
+          return loadUsuarios();
+        })
+        .then(function () {
+          return uiAlert('Usuario eliminado.', 'Listo');
+        })
+        .catch(function (e) {
+          void uiAlert(String(e.message || e), 'Error');
+        });
+    });
+  }
+
+  function loadUsuarios() {
+    const tbody = document.getElementById('usuariosBody');
+    if (!tbody || !window.Api) return Promise.resolve();
+    tbody.innerHTML =
+      '<tr><td colspan="5" class="text-center py-4"><div class="spinner-border spinner-border-sm text-secondary" role="status"></div></td></tr>';
+
+    return Promise.all([
+      window.Api.get('/usuarios_list.php'),
+      window.Api.get('/empleados_list.php'),
+      window.Api.get('/roles_list.php').catch(function () {
+        return { data: [] };
+      }),
+      window.Api.get('/estados_list.php').catch(function () {
+        return { data: [] };
+      }),
+    ])
+      .then(function (results) {
+        usuarios = results[0].data || [];
+        empleados = results[1].data || [];
+        roles = results[2].data || [];
+        estados = results[3].data || [];
+        llenarRolesSelect();
+        llenarEstadosSelect();
+        renderTable();
+      })
+      .catch(function (e) {
+        usuarios = [];
+        renderTable();
+        void uiAlert('No se pudieron cargar los usuarios: ' + (e.message || ''), 'Error');
+      });
   }
 
   document.addEventListener('DOMContentLoaded', function () {
-    Promise.all([
-      fetchJson('/js/mocks/roles.json').then(data => { roles = data; }),
-      fetchJson('/js/mocks/estados.json').then(data => { estados = data; })
-    ]).catch(() => {
-      roles = [{id:1,nombre:'admin'},{id:2,nombre:'cajero'},{id:3,nombre:'inventario'},{id:4,nombre:'cliente'}];
-      estados = [{id:1,nombre:'activo'},{id:2,nombre:'inactivo'}];
-    }).then(() => seed().then(() => renderTable()));
+    loadUsuarios();
 
     document.getElementById('btnNuevoUsuario').addEventListener('click', abrirNuevo);
-    document.getElementById('linkNuevoUsuario').addEventListener('click', function (e) {
-      e.preventDefault();
-      abrirNuevo();
-    });
     document.getElementById('btnGuardarUsuario').addEventListener('click', guardar);
   });
 })();

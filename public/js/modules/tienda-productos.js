@@ -4,17 +4,58 @@
 (function () {
   'use strict';
 
-  const basePath = '/hamilton-store/public';
-
   function fetchProductos() {
-    return fetch(basePath + '/js/mocks/productos.json').then(r => {
-      if (!r.ok) throw new Error('Error cargando productos');
-      return r.json();
-    });
+    const apiBase = typeof window !== 'undefined' && window.API_BASE ? window.API_BASE.replace(/\/$/, '') : '';
+    if (!apiBase) {
+      return Promise.reject(new Error('API_BASE no configurado (layout/footer)'));
+    }
+    return fetch(apiBase + '/productos_list.php', { credentials: 'same-origin' })
+      .then(function (r) {
+        return r.json();
+      })
+      .then(function (json) {
+        if (!json.ok) throw new Error(json.error || 'Error API');
+        var rows = json.data || [];
+        return rows.map(function (p) {
+          return {
+            id: p.id,
+            nombre: p.nombre,
+            precioVenta: p.precioVenta,
+            cantidad: p.cantidad,
+          };
+        });
+      });
   }
 
   function formatMoney(n) {
     return '₡' + Number(n).toLocaleString('es-CR');
+  }
+
+  function puedeComprarTienda() {
+    return window.HAMILTON_TIENDA_PUEDE_COMPRAR === true;
+  }
+
+  function loginUrlComprar() {
+    let base = typeof window.HAMILTON_LOGIN_URL === 'string' ? window.HAMILTON_LOGIN_URL : '';
+    if (!base) {
+      base = '/hamilton-store/public/pages/auth/login.php';
+    }
+    const sep = base.indexOf('?') === -1 ? '?' : '&';
+    return base + sep + 'next=checkout';
+  }
+
+  function ensureBannerComprar(container) {
+    if (puedeComprarTienda() || document.getElementById('tienda-aviso-login')) return;
+    const loginHref = escapeHtml(loginUrlComprar());
+    const html =
+      '<div id="tienda-aviso-login" class="alert alert-light border small mb-4 py-2 px-3" role="status">' +
+      '<i class="bi bi-lock-fill text-secondary me-2" aria-hidden="true"></i>' +
+      '<span class="text-muted">Solo cuentas cliente pueden comprar.</span> ' +
+      '<a href="' +
+      loginHref +
+      '" class="link-dark small">Iniciar sesión</a>' +
+      '</div>';
+    container.insertAdjacentHTML('beforebegin', html);
   }
 
   function renderProductCard(p, opt) {
@@ -23,18 +64,10 @@
     const badgeClass = opt?.badgeClass || 'bg-dark';
     const hasOferta = opt?.precioAntes;
     const maxStock = Math.max(1, p.cantidad ?? 99);
-    return `
-      <div class="col mb-5" data-product-id="${p.id}">
-        <div class="card h-100">
-          ${badge ? `<span class="badge ${badgeClass} position-absolute" style="top: 0.5rem; right: 0.5rem">${badge}</span>` : ''}
-          <img class="card-img-top" src="${img}" alt="${escapeHtml(p.nombre)}" />
-          <div class="card-body p-4">
-            <div class="text-center">
-              <h5 class="fw-bolder">${escapeHtml(p.nombre)}</h5>
-              ${hasOferta ? `<span class="text-muted text-decoration-line-through me-2">${formatMoney(opt.precioAntes)}</span>` : ''}
-              <span class="fw-bold">${formatMoney(p.precioVenta)}</span>
-            </div>
-          </div>
+    const puede = puedeComprarTienda();
+
+    const footerComprar = puede
+      ? `
           <div class="card-footer p-4 pt-0 border-top-0 bg-transparent">
             <div class="product-quantity-stepper" data-product-id="${p.id}">
               <label class="form-label small text-muted mb-1">Cantidad</label>
@@ -49,7 +82,22 @@
                 Agregar al carrito
               </button>
             </div>
+          </div>`
+      : '';
+
+    return `
+      <div class="col mb-5" data-product-id="${p.id}">
+        <div class="card h-100">
+          ${badge ? `<span class="badge ${badgeClass} position-absolute" style="top: 0.5rem; right: 0.5rem">${badge}</span>` : ''}
+          <img class="card-img-top" src="${img}" alt="${escapeHtml(p.nombre)}" />
+          <div class="card-body p-4">
+            <div class="text-center">
+              <h5 class="fw-bolder">${escapeHtml(p.nombre)}</h5>
+              ${hasOferta ? `<span class="text-muted text-decoration-line-through me-2">${formatMoney(opt.precioAntes)}</span>` : ''}
+              <span class="fw-bold">${formatMoney(p.precioVenta)}</span>
+            </div>
           </div>
+          ${footerComprar}
         </div>
       </div>
     `;
@@ -62,7 +110,7 @@
   }
 
   function wireAddToCart(container, productos) {
-    if (!container || !window.TiendaCarrito) return;
+    if (!container || !window.TiendaCarrito || !puedeComprarTienda()) return;
 
     container.querySelectorAll('.product-quantity-stepper').forEach(stepper => {
       const col = stepper.closest('.col.mb-5');
@@ -124,13 +172,22 @@
     async renderGrid(containerId, options) {
       const container = document.getElementById(containerId);
       if (!container) return [];
-      const productos = await fetchProductos();
+      let productos = [];
+      try {
+        productos = await fetchProductos();
+      } catch (err) {
+        console.error('Productos:', err);
+        container.innerHTML =
+          '<p class="text-center text-danger">No se pudo cargar el catálogo. Revisa la API y la consola.</p>';
+        return [];
+      }
       const badges = options?.badges || [];
       let html = '';
       productos.forEach((p, i) => {
         const opt = badges[i] || {};
         html += renderProductCard(p, opt);
       });
+      ensureBannerComprar(container);
       container.innerHTML = html;
       wireAddToCart(container, productos);
       setupSearch(container);

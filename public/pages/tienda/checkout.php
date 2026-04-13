@@ -1,4 +1,49 @@
-<?php include_once $_SERVER["DOCUMENT_ROOT"] . "/hamilton-store/public/components/layout_tienda.php"; ?>
+<?php
+/**
+ * Checkout tienda — cliente logueado vía sesión PHP (auth_login); datos de cliente desde Oracle.
+ */
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+$basePathCheckout = dirname(dirname(dirname($_SERVER['SCRIPT_NAME'])));
+if ($basePathCheckout === '/' || $basePathCheckout === '\\') {
+    $basePathCheckout = '';
+}
+
+if (($_SESSION['role'] ?? '') !== 'cliente' || empty($_SESSION['cliente_id'])) {
+    header('Location: ' . $basePathCheckout . '/pages/auth/login.php?next=checkout');
+    exit;
+}
+
+$checkoutClienteSession = null;
+if (($_SESSION['role'] ?? '') === 'cliente' && !empty($_SESSION['cliente_id'])) {
+    require_once __DIR__ . '/../../../backend/config/db.php';
+    $conn = hamilton_db();
+    if ($conn) {
+        $cid = (int) $_SESSION['cliente_id'];
+        $sql = 'SELECT nombre, apellido FROM clientes WHERE id_cliente = :id';
+        $st = oci_parse($conn, $sql);
+        if ($st) {
+            oci_bind_by_name($st, ':id', $cid);
+            if (@oci_execute($st)) {
+                $row = oci_fetch_assoc($st);
+                if ($row !== false) {
+                    $row = array_change_key_case($row, CASE_LOWER);
+                    $checkoutClienteSession = [
+                        'id'       => $cid,
+                        'nombre'   => (string) ($row['nombre'] ?? ''),
+                        'apellido' => (string) ($row['apellido'] ?? ''),
+                    ];
+                }
+            }
+            oci_free_statement($st);
+        }
+    }
+}
+
+include_once $_SERVER['DOCUMENT_ROOT'] . '/hamilton-store/public/components/layout_tienda.php';
+?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -10,6 +55,15 @@
 </head>
 <body>
     <?php MostrarNavbar(); ?>
+
+    <?php if (!empty($checkoutClienteSession)): ?>
+    <div class="container px-4 px-lg-5 pt-3">
+        <div class="alert alert-secondary border small mb-0 py-2">
+            <i class="bi bi-person-check me-1"></i>
+            Comprando como <strong><?php echo htmlspecialchars(trim($checkoutClienteSession['nombre'] . ' ' . $checkoutClienteSession['apellido'])); ?></strong>
+        </div>
+    </div>
+    <?php endif; ?>
 
     <header class="bg-dark py-4">
         <div class="container px-4 px-lg-5">
@@ -105,6 +159,9 @@
 
     <?php MostrarFooter(); ?>
     <?php MostrarJS(); ?>
+    <script>
+    window.HAMILTON_CHECKOUT_CLIENTE = <?php echo json_encode($checkoutClienteSession, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP); ?>;
+    </script>
     <script src="/hamilton-store/public/js/modules/tienda-checkout.js"></script>
 </body>
 </html>

@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/../../../backend/config/auth_guard.php';
-requireRole(['admin', 'cajero']);
+requireRole(['admin', 'soporte', 'cajero']);
 $basePath = dirname(dirname(dirname($_SERVER['SCRIPT_NAME'])));
 if ($basePath === '/' || $basePath === '\\') $basePath = '';
 $pageTitle = 'Pagos - M. Hamilton Store';
@@ -27,6 +27,8 @@ $role = $_SESSION['role'] ?? '';
                             <h5 class="mb-0"><i class="bi bi-receipt me-2"></i>Seleccionar venta</h5>
                         </div>
                         <div class="card-body">
+                            <label for="ventaFiltro" class="form-label small text-muted">Filtrar ventas con saldo</label>
+                            <input type="search" id="ventaFiltro" class="form-control form-control-sm mb-2" placeholder="ID o nombre de cliente…" autocomplete="off">
                             <select id="ventaSelect" class="form-select form-select-lg">
                                 <option value="">-- Seleccionar venta --</option>
                             </select>
@@ -74,7 +76,8 @@ $role = $_SESSION['role'] ?? '';
         </main>
     </div>
     <?php include __DIR__ . '/../../components/footer.php'; ?>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+    <?php include __DIR__ . '/../../components/scripts_bootstrap.php'; ?>
+    <script src="<?php echo htmlspecialchars($basePath); ?>/js/services/api.js"></script>
     <script src="<?php echo htmlspecialchars($basePath); ?>/js/app.js"></script>
     <script src="<?php echo htmlspecialchars($basePath); ?>/js/modules/pagos.js"></script>
 </body>

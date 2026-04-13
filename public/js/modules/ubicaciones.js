@@ -5,6 +5,13 @@
 (function () {
   'use strict';
 
+  function uiConfirm(msg, title) {
+    if (window.UiDialog && window.UiDialog.confirm) {
+      return window.UiDialog.confirm(String(msg), { title: title || 'Confirmar' });
+    }
+    return Promise.resolve(confirm(msg));
+  }
+
   const STORAGE_KEY = 'hamilton_ubicaciones';
   const basePath = (document.body.dataset.basePath || '/hamilton-store/public').replace(/\/$/, '');
 
@@ -96,12 +103,14 @@
   }
   function editarProvincia(id) { abrirProvincia(id); }
   function eliminarProvincia(id) {
-    if (!confirm('¿Eliminar? Se eliminarán cantones y distritos asociados.')) return;
+    uiConfirm('¿Eliminar? Se eliminarán cantones y distritos asociados.', 'Eliminar provincia').then(function (ok) {
+      if (!ok) return;
     const removedCantonIds = data.cantones.filter(c => c.provinciasIdProvincia === id).map(c => c.id);
     data.cantones = data.cantones.filter(c => c.provinciasIdProvincia !== id);
     data.distritos = data.distritos.filter(d => !removedCantonIds.includes(d.cantonesIdCanton));
     data.provincias = data.provincias.filter(p => p.id !== id);
     saveData();
+    });
   }
 
   function llenarProvinciasSelect(sel) {
@@ -135,10 +144,12 @@
   }
   function editarCanton(id) { abrirCanton(id); }
   function eliminarCanton(id) {
-    if (!confirm('¿Eliminar cantón y sus distritos?')) return;
+    uiConfirm('¿Eliminar cantón y sus distritos?', 'Eliminar cantón').then(function (ok) {
+      if (!ok) return;
     data.distritos = data.distritos.filter(d => d.cantonesIdCanton !== id);
     data.cantones = data.cantones.filter(c => c.id !== id);
     saveData();
+    });
   }
 
   function abrirDistrito(id) {
@@ -166,9 +177,11 @@
   }
   function editarDistrito(id) { abrirDistrito(id); }
   function eliminarDistrito(id) {
-    if (!confirm('¿Eliminar distrito?')) return;
+    uiConfirm('¿Eliminar distrito?', 'Eliminar distrito').then(function (ok) {
+      if (!ok) return;
     data.distritos = data.distritos.filter(d => d.id !== id);
     saveData();
+    });
   }
 
   document.addEventListener('DOMContentLoaded', function () {

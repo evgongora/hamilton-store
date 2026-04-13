@@ -1,43 +1,47 @@
-# Mapeo de Requerimientos - Dashboard M. Hamilton Store
+# Mapeo de requerimientos — Dashboard y tienda
 
-## Flujo unificado de acceso
+## Flujo de acceso (estado actual)
 
-| URL | Sin sesión | Cliente | Staff (admin/cajero/inventario) |
-|-----|------------|---------|--------------------------------|
-| `http://localhost/hamilton-store/` | Tienda (catálogo) | Tienda + comprar | Dashboard |
-| `http://localhost/hamilton-store/public/` |  Todos Redirige a `/` | Redirige a `/` | Redirige a `/` |
+| URL (ejemplo) | Sin sesión | Cliente | Staff (admin / soporte / cajero / inventario) |
+|---------------|------------|---------|-----------------------------------------------|
+| `http://localhost/hamilton-store/` | Tienda (catálogo) | Tienda + comprar (si rol `cliente`) | Con sesión staff: **dashboard** (`dashboard.php`). Tras **login**, destino según rol (p. ej. cajero → clientes) vía `getRoleHomePath()` |
+| `http://localhost/hamilton-store/public/` | Redirige a `/hamilton-store/` | Igual | Igual |
 
-- **Cliente**: Inicia sesión y permanece en la tienda para comprar.
-- **Staff**: Inicia sesión y va al dashboard con módulos de gestión. En la tienda verá botón "Dashboard" para cambiar de vista.
-
----
-
-## Módulos del dashboard (según requerimientos)
-
-| Requerimiento | Módulo | Archivo | Estado |
-|---------------|--------|---------|--------|
-| Usuarios y Roles | Usuarios | `usuarios.php` | Placeholder |
-| Empleados | Empleados | `empleados.php` | Placeholder |
-| Clientes | Clientes | `clientes.php` | Placeholder (mocks en `clientes.json`) |
-| Direcciones y Ubicación Geográfica | Ubicaciones | `ubicaciones.php` | Placeholder (provincias, cantones, distritos) |
-| Productos y Categorías | Productos | `productos.php` | Placeholder (mocks en `productos.json`) |
-| Proveedores y Contactos | Proveedores | `proveedores.php` | Placeholder |
-| Compras | Compras | `compras.php` | Placeholder |
-| Ventas | Ventas | `ventas.php` | **Implementado** (Punto de venta mock) |
-| Pagos y Métodos de Pago | Pagos | `pagos.php` | **Implementado** (registrar pagos mock) |
-| Control de Inventario | Inventario | `inventario.php` | Placeholder |
-| Reportes y Consultas | Reportes | `reportes.php` | Placeholder |
-
-Ver documentación detallada en `docs/modulos-sistema.md`.
+- **Cliente**: tras login permanece en la tienda; ve **Carrito** y **Checkout** en el navbar.
+- **Staff**: entra al sistema; el menú lateral muestra solo lo permitido para su rol (`hamilton_staff_menu_keys()` en `auth_guard.php`). Desde la tienda puede usar **Dashboard** cuando el rol lo permite.
 
 ---
 
-## Permisos por rol (a implementar)
+## Módulos del dashboard vs requerimientos
 
-| Rol | Módulos típicos |
-|-----|-----------------|
-| Admin | Todos |
-| Cajero | Ventas, Pagos, Clientes, Productos (consulta), Inventario (consulta) |
-| Inventario | Productos, Inventario, Compras, Proveedores, Ubicaciones |
+| Requerimiento | Módulo | Archivo principal | Estado (persistencia) |
+|---------------|--------|-------------------|------------------------|
+| Usuarios y roles | Usuarios | `public/pages/sistema/usuarios.php` | **Oracle** (`usuarios_list.php`, `usuarios_save.php`, `roles_list.php`) |
+| Empleados | Empleados | `empleados.php` | **Oracle** (`empleados_list.php`, `empleados_save.php`) |
+| Clientes | Clientes | `clientes.php` | **Oracle** lectura (`clientes_list.php`); UI listado + búsqueda |
+| Direcciones y ubicación | Ubicaciones | `ubicaciones.php` | **localStorage** + seed JSON (no API Oracle en el front actual) |
+| Productos y categorías | Productos | `productos.php` | **Oracle** (`productos_list.php`, `productos_save.php`, `categorias_*`, `estados_list.php`) |
+| Proveedores y contactos | Proveedores | `proveedores.php` | **Oracle** (`proveedores_*`, `contactos_proveedor_*`) |
+| Compras | Compras | `compras.php` | **Oracle** (`compras_create.php`, listas de productos/proveedores) |
+| Ventas | Ventas | `ventas.php` | **Oracle** (`ventas_create.php`, catálogo y clientes vía API) |
+| Pagos | Pagos | `pagos.php` | **Oracle** (`pagos_create.php`, `ventas_list.php`, `metodos_pago_list.php`) |
+| Inventario | Inventario | `inventario.php` | **Oracle** (productos; ajuste de stock según permisos en página) |
+| Reportes | Reportes | `reportes.php` | **Oracle** (`ventas_list.php`) con **respaldo** `localStorage` si la API falla |
+| Panel resumen | Dashboard | `dashboard.php` | **Oracle** (ventas, clientes, productos) con **respaldo** local |
 
-*(Filtrar menú lateral según rol con `requireRole()` en cada página.)*
+Documentación por pantalla y endpoints: [modulos-sistema.md](./modulos-sistema.md).
+
+---
+
+## Permisos por rol (implementados)
+
+La fuente de verdad es `hamilton_staff_menu_keys()` en `backend/config/auth_guard.php` y el `requireRole([...])` de cada página.
+
+| Rol | Acceso típico al menú |
+|-----|------------------------|
+| **admin** | Dashboard, productos, inventario, clientes, ubicaciones, proveedores, compras, ventas, pagos, empleados, usuarios, reportes |
+| **soporte** | Igual que admin excepto **usuarios** |
+| **cajero** | Clientes, inventario, ventas, pagos |
+| **inventario** | Productos, inventario, proveedores, compras |
+
+Las páginas del sistema deben coincidir con estas listas para evitar enlaces rotos o accesos no autorizados.

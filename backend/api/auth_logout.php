@@ -19,5 +19,5 @@ if ($base === '/' || $base === '\\') {
     $base = '';
 }
 
-header("Location: {$base}/public/pages/auth/login.php");
+header("Location: {$base}/public/pages/auth/login.php?logout=1");
 exit;

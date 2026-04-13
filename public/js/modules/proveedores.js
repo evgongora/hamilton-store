@@ -1,20 +1,33 @@
 /**
- * proveedores.js - CRUD de proveedores y contactos con localStorage
+ * proveedores.js — Proveedores y contactos vía Oracle (pkg_proveedores, pkg_contactos_proveedores).
  */
 (function () {
   'use strict';
 
-  var STORAGE_KEY = 'hamilton-store-proveedores';
+  function uiAlert(msg, title) {
+    if (window.UiDialog && window.UiDialog.alert) {
+      return window.UiDialog.alert(String(msg), { title: title || 'Proveedores' });
+    }
+    alert(msg);
+    return Promise.resolve();
+  }
+
+  function uiConfirm(msg, title) {
+    if (window.UiDialog && window.UiDialog.confirm) {
+      return window.UiDialog.confirm(String(msg), { title: title || 'Confirmar' });
+    }
+    return Promise.resolve(confirm(msg));
+  }
+
   var selectedProviderId = null;
   var cachedProviders = [];
+  var estadosList = [];
+  var contactsCache = {};
 
   document.addEventListener('DOMContentLoaded', function () {
     var grid = document.getElementById('proveedoresGrid');
-    if (!grid) {
-      return;
-    }
+    if (!grid) return;
 
-    var basePath = (document.body.dataset.basePath || '').replace(/\/$/, '');
     var currentRole = String(document.body.dataset.currentRole || '').trim().toLowerCase();
     var isAdmin = currentRole === 'admin';
     var count = document.getElementById('proveedoresCount');
@@ -28,18 +41,6 @@
     var contactForm = document.getElementById('contactForm');
     var providerModal = providerModalElement ? new bootstrap.Modal(providerModalElement) : null;
     var contactModal = contactModalElement ? new bootstrap.Modal(contactModalElement) : null;
-    var providerFields = {
-      id: document.getElementById('providerId'),
-      nombre: document.getElementById('providerNombre')
-    };
-    var contactFields = {
-      providerId: document.getElementById('contactProviderId'),
-      index: document.getElementById('contactIndex'),
-      nombre: document.getElementById('contactNombre'),
-      puesto: document.getElementById('contactPuesto'),
-      telefono: document.getElementById('contactTelefono'),
-      email: document.getElementById('contactEmail')
-    };
     var providerModalTitle = document.getElementById('providerModalTitle');
     var providerModalDescription = document.getElementById('providerModalDescription');
     var providerSubmitButton = document.getElementById('providerSubmitButton');
@@ -47,23 +48,6 @@
     var contactModalDescription = document.getElementById('contactModalDescription');
     var contactSubmitButton = document.getElementById('contactSubmitButton');
     var newProviderButton = document.getElementById('btnNuevoProveedor');
-
-    function readStorage() {
-      try {
-        var raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) {
-          return null;
-        }
-        var parsed = JSON.parse(raw);
-        return Array.isArray(parsed) ? parsed : null;
-      } catch (error) {
-        return null;
-      }
-    }
-
-    function writeStorage() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(cachedProviders));
-    }
 
     function escapeHtml(value) {
       return String(value == null ? '' : value)
@@ -74,105 +58,137 @@
         .replace(/'/g, '&#39;');
     }
 
-    function normalizeContact(contacto) {
-      return {
-        nombre: String(contacto.nombre || contacto.contacto || '').trim(),
-        telefono: String(contacto.telefono || contacto.numeroTelefono || '').trim(),
-        email: String(contacto.email || '').trim(),
-        puesto: String(contacto.puesto || '').trim()
-      };
-    }
-
-    function normalizeProvider(provider, index) {
-      var contactos = Array.isArray(provider.contactos) ? provider.contactos.map(normalizeContact) : [];
-      var contactoPrincipal = normalizeContact({
-        nombre: provider.contacto || provider.nombreContacto || '',
-        telefono: provider.telefono || provider.numeroTelefono || '',
-        email: provider.email || '',
-        puesto: provider.puesto || ''
-      });
-
-      if (!contactos.length && (contactoPrincipal.nombre || contactoPrincipal.telefono || contactoPrincipal.email || contactoPrincipal.puesto)) {
-        contactos = [contactoPrincipal];
-      }
-
-      contactos = contactos.filter(function (contacto) {
-        return contacto.nombre || contacto.telefono || contacto.email || contacto.puesto;
-      });
-
-      return {
-        id: provider.id || provider.id_proveedor || provider.proveedorId || ('proveedor-' + index),
-        nombre: String(provider.nombre || provider.proveedor || '').trim(),
-        contactos: contactos
-      };
-    }
-
     function getContactsLabel(total) {
       return total === 1 ? '1 contacto' : total + ' contactos';
     }
 
-    function getSelectedProvider() {
-      if (!cachedProviders.length) {
-        return null;
-      }
+    function fillEstadosSelect() {
+      var sel = document.getElementById('providerIdEstado');
+      if (!sel) return;
+      var cur = sel.value;
+      sel.innerHTML = '';
+      estadosList.forEach(function (e) {
+        var opt = document.createElement('option');
+        opt.value = String(e.id);
+        opt.textContent = e.nombre;
+        sel.appendChild(opt);
+      });
+      if (cur && sel.querySelector('option[value="' + cur + '"]')) sel.value = cur;
+      else if (estadosList.length) sel.value = String(estadosList[0].id);
+    }
 
-      return cachedProviders.find(function (item) {
-        return String(item.id) === String(selectedProviderId);
-      }) || cachedProviders[0];
+    function getSelectedProvider() {
+      if (!cachedProviders.length) return null;
+      return (
+        cachedProviders.find(function (item) {
+          return String(item.id) === String(selectedProviderId);
+        }) || cachedProviders[0]
+      );
     }
 
     function getProviderById(providerId) {
-      return cachedProviders.find(function (item) {
-        return String(item.id) === String(providerId);
-      }) || null;
+      return (
+        cachedProviders.find(function (item) {
+          return String(item.id) === String(providerId);
+        }) || null
+      );
     }
 
-    function getNextProviderId() {
-      return cachedProviders.reduce(function (maxId, provider) {
-        return Math.max(maxId, Number(provider.id) || 0);
-      }, 0) + 1;
-    }
-
-    function renderContacts(provider) {
+    function renderContacts(provider, contactos) {
       if (!provider) {
-        contactsPanel.innerHTML = '<div class="text-muted">Seleccione un proveedor para ver sus contactos.</div>';
+        contactsPanel.innerHTML =
+          '<div class="text-muted">Seleccione un proveedor para ver sus contactos.</div>';
         return;
       }
 
-      var contactsMarkup = provider.contactos.length
-        ? provider.contactos.map(function (contacto, index) {
-            return [
-              '<div class="border rounded-3 bg-white p-3 mb-3">',
-              '<div class="d-flex justify-content-between align-items-start gap-3 mb-2">',
-              '<div>',
-              '<div class="fw-semibold text-dark">' + escapeHtml(contacto.nombre || 'Sin nombre') + '</div>',
-              contacto.puesto ? '<div class="text-muted small">' + escapeHtml(contacto.puesto) + '</div>' : '',
-              '</div>',
-              isAdmin ? '<div class="btn-group btn-group-sm"><button type="button" class="btn btn-outline-secondary contact-edit" data-provider-id="' + escapeHtml(provider.id) + '" data-contact-index="' + escapeHtml(index) + '"><i class="bi bi-pencil"></i></button><button type="button" class="btn btn-outline-danger contact-delete" data-provider-id="' + escapeHtml(provider.id) + '" data-contact-index="' + escapeHtml(index) + '"><i class="bi bi-trash"></i></button></div>' : '',
-              '</div>',
-              '<div class="small"><i class="bi bi-telephone me-2"></i>' + escapeHtml(contacto.telefono || 'No registrado') + '</div>',
-              '<div class="small"><i class="bi bi-envelope me-2"></i>' + escapeHtml(contacto.email || 'No registrado') + '</div>',
-              '</div>'
-            ].join('');
-          }).join('')
+      var list = contactos || [];
+      var contactsMarkup = list.length
+        ? list
+            .map(function (c) {
+              return [
+                '<div class="border rounded-3 bg-white p-3 mb-3">',
+                '<div class="d-flex justify-content-between align-items-start gap-3 mb-2">',
+                '<div>',
+                '<div class="fw-semibold text-dark">' +
+                  escapeHtml(c.nombre || '') +
+                  ' ' +
+                  escapeHtml(c.apellido || '') +
+                  '</div>',
+                '</div>',
+                isAdmin
+                  ? '<div class="btn-group btn-group-sm"><button type="button" class="btn btn-outline-secondary contact-edit" data-provider-id="' +
+                    escapeHtml(provider.id) +
+                    '" data-contact-id="' +
+                    escapeHtml(c.id) +
+                    '"><i class="bi bi-pencil"></i></button><button type="button" class="btn btn-outline-danger contact-delete" data-provider-id="' +
+                    escapeHtml(provider.id) +
+                    '" data-contact-id="' +
+                    escapeHtml(c.id) +
+                    '"><i class="bi bi-trash"></i></button></div>'
+                  : '',
+                '</div>',
+                '<div class="small"><i class="bi bi-telephone me-2"></i>' +
+                  escapeHtml(c.telefono || '') +
+                  '</div>',
+                '<div class="small"><i class="bi bi-envelope me-2"></i>' +
+                  escapeHtml(c.email || '') +
+                  '</div>',
+                '</div>',
+              ].join('');
+            })
+            .join('')
         : '<div class="text-muted mb-3">Este proveedor no tiene contactos registrados.</div>';
 
       contactsPanel.innerHTML = [
         '<div class="d-flex justify-content-between align-items-start gap-3 mb-3">',
         '<div>',
         '<h5 class="mb-1">' + escapeHtml(provider.nombre || 'Proveedor') + '</h5>',
-        '<div class="text-muted small">' + getContactsLabel(provider.contactos.length) + '</div>',
+        '<div class="text-muted small">' + getContactsLabel(list.length) + '</div>',
+        '<div class="text-muted small">Cédula: ' + escapeHtml(provider.cedulaJuridica || '') + '</div>',
         '</div>',
-        isAdmin ? '<div class="btn-group btn-group-sm"><button type="button" class="btn btn-outline-secondary provider-edit" data-provider-id="' + escapeHtml(provider.id) + '"><i class="bi bi-pencil"></i></button><button type="button" class="btn btn-outline-danger provider-delete" data-provider-id="' + escapeHtml(provider.id) + '"><i class="bi bi-trash"></i></button></div>' : '',
+        isAdmin
+          ? '<div class="btn-group btn-group-sm"><button type="button" class="btn btn-outline-secondary provider-edit" data-provider-id="' +
+            escapeHtml(provider.id) +
+            '"><i class="bi bi-pencil"></i></button><button type="button" class="btn btn-outline-danger provider-delete" data-provider-id="' +
+            escapeHtml(provider.id) +
+            '"><i class="bi bi-trash"></i></button></div>'
+          : '',
         '</div>',
-        isAdmin ? '<button type="button" class="btn btn-dark btn-sm mb-3" id="btnNuevoContacto" data-provider-id="' + escapeHtml(provider.id) + '"><i class="bi bi-person-plus me-1"></i>Nuevo contacto</button>' : '',
-        contactsMarkup
+        isAdmin
+          ? '<button type="button" class="btn btn-dark btn-sm mb-3" id="btnNuevoContacto" data-provider-id="' +
+            escapeHtml(provider.id) +
+            '"><i class="bi bi-person-plus me-1"></i>Nuevo contacto</button>'
+          : '',
+        contactsMarkup,
       ].join('');
     }
 
-    function renderCards() {
-      var provider;
+    function fetchContactsForProvider(provider, useCache) {
+      if (!window.Api || !provider) {
+        renderContacts(provider, []);
+        return Promise.resolve();
+      }
+      var pid = String(provider.id);
+      if (useCache && contactsCache[pid]) {
+        renderContacts(provider, contactsCache[pid]);
+        return Promise.resolve(contactsCache[pid]);
+      }
+      contactsPanel.innerHTML =
+        '<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-secondary" role="status"></div></div>';
+      return window.Api
+        .get('/contactos_proveedor_list.php?proveedorId=' + encodeURIComponent(pid))
+        .then(function (json) {
+          var rows = json.data || [];
+          contactsCache[pid] = rows;
+          renderContacts(provider, rows);
+          return rows;
+        })
+        .catch(function () {
+          renderContacts(provider, []);
+        });
+    }
 
+    function renderCards() {
       grid.innerHTML = '';
       count.textContent = cachedProviders.length + ' proveedor(es)';
 
@@ -180,7 +196,7 @@
         loading.classList.add('d-none');
         content.classList.add('d-none');
         empty.classList.remove('d-none');
-        renderContacts(null);
+        renderContacts(null, []);
         return;
       }
 
@@ -188,7 +204,7 @@
         selectedProviderId = cachedProviders[0].id;
       }
 
-      provider = getSelectedProvider();
+      var provider = getSelectedProvider();
       selectedProviderId = provider.id;
 
       loading.classList.add('d-none');
@@ -202,23 +218,27 @@
         col.innerHTML = [
           '<button type="button" class="card h-100 w-100 text-start border-2 shadow-sm proveedor-card',
           isSelected ? ' border-dark' : ' border-light',
-          '" data-provider-id="', escapeHtml(item.id), '" style="background:', isSelected ? '#f8f9fa' : '#ffffff', ';">',
+          '" data-provider-id="',
+          escapeHtml(item.id),
+          '" style="background:',
+          isSelected ? '#f8f9fa' : '#ffffff',
+          ';">',
           '<div class="card-body">',
           '<div class="d-flex justify-content-between align-items-start gap-3 mb-3">',
           '<div>',
-          '<div class="fw-semibold text-dark">' + escapeHtml(item.nombre || 'Proveedor sin nombre') + '</div>',
-          '<div class="text-muted small mt-1">' + getContactsLabel(item.contactos.length) + '</div>',
+          '<div class="fw-semibold text-dark">' + escapeHtml(item.nombre || '') + '</div>',
+          '<div class="text-muted small mt-1">' + escapeHtml(item.cedulaJuridica || '') + '</div>',
           '</div>',
           '<i class="bi bi-chevron-right text-muted"></i>',
           '</div>',
-          '<div class="small text-muted">Seleccionar para ver contactos asociados</div>',
+          '<div class="small text-muted">' + escapeHtml(item.estado || '') + '</div>',
           '</div>',
-          '</button>'
+          '</button>',
         ].join('');
         grid.appendChild(col);
       });
 
-      renderContacts(provider);
+      return fetchContactsForProvider(provider, true);
     }
 
     function renderLoadingState() {
@@ -226,209 +246,226 @@
       empty.classList.add('d-none');
       content.classList.add('d-none');
       grid.innerHTML = '';
-      renderContacts(null);
-      count.textContent = 'Cargando...';
+      contactsPanel.innerHTML = '<div class="text-muted">Cargando…</div>';
+      count.textContent = 'Cargando…';
     }
 
     function renderErrorState() {
       loading.classList.add('d-none');
       empty.classList.add('d-none');
       content.classList.remove('d-none');
-      grid.innerHTML = '<div class="col-12"><div class="alert alert-danger mb-0">No se pudieron cargar los proveedores.</div></div>';
-      contactsPanel.innerHTML = '<div class="text-muted">No hay informacion de contactos disponible.</div>';
+      grid.innerHTML =
+        '<div class="col-12"><div class="alert alert-danger mb-0">No se pudieron cargar los proveedores.</div></div>';
+      contactsPanel.innerHTML = '<div class="text-muted">Sin datos.</div>';
       count.textContent = '0 proveedores';
     }
 
     function resetProviderForm() {
-      if (!providerForm) {
-        return;
-      }
+      if (!providerForm) return;
       providerForm.reset();
-      providerFields.id.value = '';
-      providerModalTitle.textContent = 'Nuevo proveedor';
-      providerModalDescription.textContent = 'Registra un proveedor nuevo.';
-      providerSubmitButton.textContent = 'Guardar proveedor';
+      document.getElementById('providerId').value = '';
+      fillEstadosSelect();
+      if (providerModalTitle) providerModalTitle.textContent = 'Nuevo proveedor';
+      if (providerModalDescription) providerModalDescription.textContent = 'Registra un proveedor nuevo.';
+      if (providerSubmitButton) providerSubmitButton.textContent = 'Guardar proveedor';
     }
 
     function resetContactForm(providerId) {
-      if (!contactForm) {
-        return;
-      }
+      if (!contactForm) return;
       contactForm.reset();
-      contactFields.providerId.value = providerId != null ? String(providerId) : '';
-      contactFields.index.value = '';
-      contactModalTitle.textContent = 'Nuevo contacto';
-      contactModalDescription.textContent = 'Registra un contacto para el proveedor seleccionado.';
-      contactSubmitButton.textContent = 'Guardar contacto';
+      document.getElementById('contactId').value = '';
+      document.getElementById('contactProviderId').value = providerId != null ? String(providerId) : '';
+      if (contactModalTitle) contactModalTitle.textContent = 'Nuevo contacto';
+      if (contactModalDescription)
+        contactModalDescription.textContent = 'Registra un contacto para el proveedor seleccionado.';
+      if (contactSubmitButton) contactSubmitButton.textContent = 'Guardar contacto';
     }
 
     function openProviderModal(providerId) {
-      var provider = providerId != null ? getProviderById(providerId) : null;
-      if (!isAdmin || !providerModal) {
-        return;
-      }
-
+      if (!isAdmin || !providerModal) return;
       resetProviderForm();
-      if (provider) {
-        providerFields.id.value = String(provider.id);
-        providerFields.nombre.value = provider.nombre;
-        providerModalTitle.textContent = 'Editar proveedor';
-        providerModalDescription.textContent = 'Actualiza la informacion del proveedor seleccionado.';
-        providerSubmitButton.textContent = 'Actualizar proveedor';
+      if (providerId != null) {
+        var p = getProviderById(providerId);
+        if (p) {
+          document.getElementById('providerId').value = String(p.id);
+          document.getElementById('providerNombre').value = p.nombre || '';
+          document.getElementById('providerCedulaJuridica').value = p.cedulaJuridica || '';
+          document.getElementById('providerPaginaWeb').value = p.paginaWeb || '';
+          fillEstadosSelect();
+          document.getElementById('providerIdEstado').value = String(p.idEstado || '');
+          if (providerModalTitle) providerModalTitle.textContent = 'Editar proveedor';
+          if (providerModalDescription)
+            providerModalDescription.textContent = 'Actualice los datos del proveedor.';
+          if (providerSubmitButton) providerSubmitButton.textContent = 'Actualizar proveedor';
+        }
       }
-
       providerModal.show();
     }
 
-    function openContactModal(providerId, contactIndex) {
+    function openContactModal(providerId, contactId) {
       var provider = getProviderById(providerId);
-      var contact;
-
-      if (!isAdmin || !contactModal || !provider) {
-        return;
-      }
-
+      if (!isAdmin || !contactModal || !provider) return;
       resetContactForm(provider.id);
-      if (contactIndex != null && provider.contactos[contactIndex]) {
-        contact = provider.contactos[contactIndex];
-        contactFields.index.value = String(contactIndex);
-        contactFields.nombre.value = contact.nombre;
-        contactFields.puesto.value = contact.puesto;
-        contactFields.telefono.value = contact.telefono;
-        contactFields.email.value = contact.email;
-        contactModalTitle.textContent = 'Editar contacto';
-        contactModalDescription.textContent = 'Actualiza la informacion del contacto seleccionado.';
-        contactSubmitButton.textContent = 'Actualizar contacto';
+      if (contactId != null) {
+        var pid = String(provider.id);
+        var list = contactsCache[pid] || [];
+        var c = list.find(function (x) {
+          return String(x.id) === String(contactId);
+        });
+        if (c) {
+          document.getElementById('contactId').value = String(c.id);
+          document.getElementById('contactNombre').value = c.nombre || '';
+          document.getElementById('contactApellido').value = c.apellido || '';
+          document.getElementById('contactEmail').value = c.email || '';
+          document.getElementById('contactTelefono').value = c.telefono || '';
+          if (contactModalTitle) contactModalTitle.textContent = 'Editar contacto';
+          if (contactModalDescription) contactModalDescription.textContent = 'Actualice los datos del contacto.';
+          if (contactSubmitButton) contactSubmitButton.textContent = 'Actualizar contacto';
+        }
       }
-
       contactModal.show();
     }
 
     function saveProvider(event) {
-      var providerId;
-      var providerName;
-      var existing;
-
       event.preventDefault();
-      providerName = String(providerFields.nombre.value || '').trim();
-      if (!providerName) {
-        providerFields.nombre.focus();
+      if (!window.Api) {
+        void uiAlert('API no disponible.', 'Error');
         return;
       }
-
-      providerId = providerFields.id.value;
-      if (providerId) {
-        existing = getProviderById(providerId);
-        if (existing) {
-          existing.nombre = providerName;
-        }
-      } else {
-        cachedProviders.push({
-          id: getNextProviderId(),
-          nombre: providerName,
-          contactos: []
-        });
-        selectedProviderId = cachedProviders[cachedProviders.length - 1].id;
+      var id = document.getElementById('providerId').value.trim();
+      var nombre = document.getElementById('providerNombre').value.trim();
+      var cedula = document.getElementById('providerCedulaJuridica').value.trim();
+      var web = document.getElementById('providerPaginaWeb').value.trim();
+      var idEst = parseInt(document.getElementById('providerIdEstado').value, 10);
+      if (!nombre || !cedula || !idEst) {
+        void uiAlert('Complete nombre, cédula jurídica y estado.');
+        return;
       }
-
-      writeStorage();
-      renderCards();
-      providerModal.hide();
+      var body = {
+        nombre: nombre,
+        cedulaJuridica: cedula,
+        paginaWeb: web,
+        idEstado: idEst,
+      };
+      if (id) {
+        body.action = 'update';
+        body.id = parseInt(id, 10);
+      } else {
+        body.action = 'insert';
+      }
+      window.Api
+        .post('/proveedores_save.php', body)
+        .then(function () {
+          providerModal.hide();
+          contactsCache = {};
+          return loadProviders();
+        })
+        .then(function () {
+          return uiAlert(body.action === 'insert' ? 'Proveedor creado.' : 'Proveedor actualizado.', 'Listo');
+        })
+        .catch(function (e) {
+          void uiAlert(String(e.message || e), 'Error');
+        });
     }
 
     function saveContact(event) {
-      var provider = getProviderById(contactFields.providerId.value);
-      var contact;
-      var contactIndex;
-
       event.preventDefault();
-      if (!provider) {
+      if (!window.Api) return;
+      var cid = document.getElementById('contactId').value.trim();
+      var pid = document.getElementById('contactProviderId').value;
+      var nombre = document.getElementById('contactNombre').value.trim();
+      var apellido = document.getElementById('contactApellido').value.trim();
+      var email = document.getElementById('contactEmail').value.trim();
+      var telefono = document.getElementById('contactTelefono').value.trim();
+      if (!nombre || !apellido || !email || !telefono || !pid) {
+        void uiAlert('Complete todos los campos del contacto.');
         return;
       }
-
-      contact = normalizeContact({
-        nombre: contactFields.nombre.value,
-        puesto: contactFields.puesto.value,
-        telefono: contactFields.telefono.value,
-        email: contactFields.email.value
-      });
-
-      if (!contact.nombre) {
-        contactFields.nombre.focus();
-        return;
-      }
-
-      contactIndex = contactFields.index.value;
-      if (contactIndex !== '') {
-        provider.contactos[Number(contactIndex)] = contact;
+      var body = {
+        nombre: nombre,
+        apellido: apellido,
+        email: email,
+        telefono: telefono,
+        proveedorId: parseInt(pid, 10),
+      };
+      if (cid) {
+        body.action = 'update';
+        body.id = parseInt(cid, 10);
       } else {
-        provider.contactos.push(contact);
+        body.action = 'insert';
       }
-
-      selectedProviderId = provider.id;
-      writeStorage();
-      renderCards();
-      contactModal.hide();
+      window.Api
+        .post('/contactos_proveedor_save.php', body)
+        .then(function () {
+          contactModal.hide();
+          delete contactsCache[String(pid)];
+          return fetchContactsForProvider(getProviderById(pid), false);
+        })
+        .then(function () {
+          return uiAlert(
+            body.action === 'insert' ? 'Contacto creado.' : 'Contacto actualizado.',
+            'Listo'
+          );
+        })
+        .catch(function (e) {
+          void uiAlert(String(e.message || e), 'Error');
+        });
     }
 
     function deleteProvider(providerId) {
-      var provider = getProviderById(providerId);
-      if (!provider) {
-        return;
-      }
-
-      if (!window.confirm('Se eliminara el proveedor "' + provider.nombre + '" y todos sus contactos.')) {
-        return;
-      }
-
-      cachedProviders = cachedProviders.filter(function (item) {
-        return String(item.id) !== String(providerId);
+      uiConfirm('¿Eliminar este proveedor y sus contactos asociados?', 'Eliminar').then(function (ok) {
+        if (!ok || !window.Api) return;
+        window.Api
+          .post('/proveedores_save.php', { action: 'delete', id: parseInt(providerId, 10) })
+          .then(function () {
+            delete contactsCache[String(providerId)];
+            selectedProviderId = null;
+            return loadProviders();
+          })
+          .then(function () {
+            return uiAlert('Proveedor eliminado.', 'Listo');
+          })
+          .catch(function (e) {
+            void uiAlert(String(e.message || e), 'Error');
+          });
       });
-      selectedProviderId = cachedProviders.length ? cachedProviders[0].id : null;
-      writeStorage();
-      renderCards();
     }
 
-    function deleteContact(providerId, contactIndex) {
-      var provider = getProviderById(providerId);
-      var contact;
-
-      if (!provider || !provider.contactos[contactIndex]) {
-        return;
-      }
-
-      contact = provider.contactos[contactIndex];
-      if (!window.confirm('Se eliminara el contacto "' + contact.nombre + '".')) {
-        return;
-      }
-
-      provider.contactos.splice(Number(contactIndex), 1);
-      selectedProviderId = provider.id;
-      writeStorage();
-      renderCards();
+    function deleteContact(providerId, contactId) {
+      uiConfirm('¿Eliminar este contacto?', 'Eliminar').then(function (ok) {
+        if (!ok || !window.Api) return;
+        window.Api
+          .post('/contactos_proveedor_save.php', { action: 'delete', id: parseInt(contactId, 10) })
+          .then(function () {
+            delete contactsCache[String(providerId)];
+            return fetchContactsForProvider(getProviderById(providerId), false);
+          })
+          .then(function () {
+            return uiAlert('Contacto eliminado.', 'Listo');
+          })
+          .catch(function (e) {
+            void uiAlert(String(e.message || e), 'Error');
+          });
+      });
     }
 
     function loadProviders() {
-      var stored = readStorage();
-      renderLoadingState();
-
-      if (stored) {
-        cachedProviders = stored.map(normalizeProvider);
-        renderCards();
-        return;
+      if (!window.Api) {
+        renderErrorState();
+        return Promise.resolve();
       }
-
-      fetch(basePath + '/js/mocks/proveedores.json', { cache: 'no-store' })
-        .then(function (response) {
-          if (!response.ok) {
-            throw new Error('proveedores mock');
-          }
-          return response.json();
-        })
-        .then(function (providers) {
-          cachedProviders = (Array.isArray(providers) ? providers : []).map(normalizeProvider);
-          writeStorage();
-          renderCards();
+      renderLoadingState();
+      return Promise.all([
+        window.Api.get('/proveedores_list.php'),
+        window.Api.get('/estados_list.php').catch(function () {
+          return { data: [] };
+        }),
+      ])
+        .then(function (results) {
+          cachedProviders = results[0].data || [];
+          estadosList = results[1].data || [];
+          fillEstadosSelect();
+          return renderCards();
         })
         .catch(function () {
           renderErrorState();
@@ -451,19 +488,13 @@
 
     grid.addEventListener('click', function (event) {
       var card = event.target.closest('[data-provider-id]');
-      if (!card) {
-        return;
-      }
-
+      if (!card || !card.classList.contains('proveedor-card')) return;
       selectedProviderId = card.getAttribute('data-provider-id');
       renderCards();
     });
 
     contactsPanel.addEventListener('click', function (event) {
-      if (!isAdmin) {
-        return;
-      }
-
+      if (!isAdmin) return;
       var newContactButton = event.target.closest('#btnNuevoContacto');
       var editProviderButton = event.target.closest('.provider-edit');
       var deleteProviderButton = event.target.closest('.provider-delete');
@@ -474,24 +505,26 @@
         openContactModal(newContactButton.getAttribute('data-provider-id'), null);
         return;
       }
-
       if (editProviderButton) {
         openProviderModal(editProviderButton.getAttribute('data-provider-id'));
         return;
       }
-
       if (deleteProviderButton) {
         deleteProvider(deleteProviderButton.getAttribute('data-provider-id'));
         return;
       }
-
       if (editContactButton) {
-        openContactModal(editContactButton.getAttribute('data-provider-id'), Number(editContactButton.getAttribute('data-contact-index')));
+        openContactModal(
+          editContactButton.getAttribute('data-provider-id'),
+          editContactButton.getAttribute('data-contact-id')
+        );
         return;
       }
-
       if (deleteContactButton) {
-        deleteContact(deleteContactButton.getAttribute('data-provider-id'), Number(deleteContactButton.getAttribute('data-contact-index')));
+        deleteContact(
+          deleteContactButton.getAttribute('data-provider-id'),
+          deleteContactButton.getAttribute('data-contact-id')
+        );
       }
     });
 

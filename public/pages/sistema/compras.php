@@ -1,7 +1,10 @@
 <?php
 require_once __DIR__ . '/../../../backend/config/auth_guard.php';
-requireRole(['admin', 'inventario']);
+requireRole(['admin', 'soporte', 'inventario']);
 $basePath = dirname(dirname(dirname($_SERVER['SCRIPT_NAME'])));
+if ($basePath === '/' || $basePath === '\\') {
+    $basePath = '';
+}
 $pageTitle = 'Compras - M. Hamilton Store';
 $currentPage = 'compras';
 $user = $_SESSION['user'] ?? '';
@@ -12,92 +15,79 @@ $role = $_SESSION['role'] ?? '';
 <head>
     <?php include __DIR__ . '/../../components/head.php'; ?>
 </head>
-<body class="app-layout bg-light" data-base-path="<?php echo htmlspecialchars($basePath); ?>" data-current-user="<?php echo htmlspecialchars($user); ?>" data-current-role="<?php echo htmlspecialchars($role); ?>">
+<body class="app-layout bg-light" data-base-path="<?php echo htmlspecialchars($basePath); ?>">
     <?php include __DIR__ . '/../../components/navbar.php'; ?>
     <div class="app-main">
         <?php include __DIR__ . '/../../components/sidebar.php'; ?>
         <main class="app-content">
-            <h1 class="mb-4">Compras</h1>
+            <h1 class="mb-4">Registrar compra</h1>
 
             <div class="row g-4">
-                <div class="col-lg-4">
+                <div class="col-lg-7">
                     <div class="card mb-4">
                         <div class="card-header bg-dark text-white">
-                            <h5 class="mb-0"><i class="bi bi-person-badge me-2"></i>Registro</h5>
+                            <h5 class="mb-0"><i class="bi bi-search me-2"></i>Buscar producto</h5>
                         </div>
                         <div class="card-body">
-                            <div class="small text-muted">Compra registrada por</div>
-                            <div class="fw-semibold"><?php echo htmlspecialchars($user ?: 'Usuario actual'); ?></div>
+                            <input type="text" id="productSearch" class="form-control form-control-lg" placeholder="Nombre del producto..." autocomplete="off">
+                            <div id="productResults" class="list-group mt-2" style="max-height: 200px; overflow-y: auto;"></div>
                         </div>
                     </div>
 
-                    <div class="card">
-                        <div class="card-header bg-dark text-white">
-                            <h5 class="mb-0"><i class="bi bi-bag-plus me-2"></i>Nueva compra</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="row g-3">
-                                <div class="col-12">
-                                    <label for="productoSelect" class="form-label">Producto</label>
-                                    <select id="productoSelect" class="form-select">
-                                        <option value="">-- Seleccionar producto --</option>
-                                    </select>
-                                </div>
-                                <div class="col-12">
-                                    <label for="proveedorSelect" class="form-label">Proveedor</label>
-                                    <select id="proveedorSelect" class="form-select">
-                                        <option value="">-- Seleccionar proveedor --</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="cantidadInput" class="form-label">Cantidad</label>
-                                    <input type="number" id="cantidadInput" class="form-control" min="1" step="1" value="1">
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="precioUnitario" class="form-label">Precio unitario</label>
-                                    <input type="text" id="precioUnitario" class="form-control" value="₡0.00" readonly>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="card-footer bg-white">
-                            <div class="d-flex justify-content-between small text-muted mb-2">
-                                <span>Total a registrar</span>
-                                <span id="summaryTotal">₡0.00</span>
-                            </div>
-                            <button type="button" id="btnRegistrarCompra" class="btn btn-success btn-lg w-100" disabled>
-                                <i class="bi bi-check-circle me-2"></i>Registrar Compra
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-lg-8">
                     <div class="card">
                         <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-                            <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Historial de compras</h5>
-                            <span id="historyCount" class="badge bg-light text-dark">0</span>
+                            <h5 class="mb-0"><i class="bi bi-box-seam me-2"></i>L&iacute;neas de compra</h5>
+                            <span id="cartCount" class="badge bg-light text-dark">0</span>
                         </div>
                         <div class="card-body p-0">
                             <div class="table-responsive">
                                 <table class="table table-hover mb-0">
                                     <thead class="table-light">
                                         <tr>
-                                            <th>Fecha</th>
-                                            <th>Usuario</th>
-                                            <th>Proveedor</th>
                                             <th>Producto</th>
                                             <th class="text-end">Cant.</th>
-                                            <th class="text-end">P. unit.</th>
-                                            <th class="text-end">Total</th>
-                                            <?php if ($role === 'admin'): ?>
-                                                <th class="text-end">Acciones</th>
-                                            <?php endif; ?>
+                                            <th class="text-end">P. unit. (costo)</th>
+                                            <th class="text-end">Subtotal</th>
+                                            <th></th>
                                         </tr>
                                     </thead>
-                                    <tbody id="historyBody"></tbody>
+                                    <tbody id="cartBody"></tbody>
+                                    <tfoot class="table-light">
+                                        <tr>
+                                            <td colspan="3" class="fw-bold">Total</td>
+                                            <td id="cartTotal" class="text-end fw-bold">₡0</td>
+                                            <td></td>
+                                        </tr>
+                                    </tfoot>
                                 </table>
                             </div>
-                            <div id="historyEmpty" class="text-center text-muted py-4">No hay compras registradas</div>
+                            <div id="cartEmpty" class="text-center text-muted py-4">No hay l&iacute;neas en esta compra</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-5">
+                    <div class="card mb-4">
+                        <div class="card-header bg-dark text-white">
+                            <h5 class="mb-0"><i class="bi bi-calendar3 me-2"></i>Fecha y proveedor</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label for="fechaCompra" class="form-label">Fecha de compra</label>
+                                <input type="date" id="fechaCompra" class="form-control">
+                            </div>
+                            <label for="proveedorSelect" class="form-label">Proveedor</label>
+                            <select id="proveedorSelect" class="form-select">
+                                <option value="">-- Cargando proveedores --</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-body">
+                            <button type="button" id="btnConfirmarCompra" class="btn btn-success btn-lg w-100" disabled>
+                                <i class="bi bi-check-circle me-2"></i>Registrar compra
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -105,7 +95,8 @@ $role = $_SESSION['role'] ?? '';
         </main>
     </div>
     <?php include __DIR__ . '/../../components/footer.php'; ?>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+    <?php include __DIR__ . '/../../components/scripts_bootstrap.php'; ?>
+    <script src="<?php echo htmlspecialchars($basePath); ?>/js/services/api.js"></script>
     <script src="<?php echo htmlspecialchars($basePath); ?>/js/app.js"></script>
     <script src="<?php echo htmlspecialchars($basePath); ?>/js/modules/compras.js"></script>
 </body>

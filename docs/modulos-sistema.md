@@ -1,334 +1,233 @@
-# Módulos del Sistema - M. Hamilton Store
+# Módulos del sistema y tienda — M. Hamilton Store
 
-Documentación de los módulos implementados del dashboard: Ventas, Productos, Clientes, Pagos y la tienda pública.
+Documentación alineada con el código actual: **API Oracle** en `backend/api/`, cliente en `public/js/modules/` y `public/js/services/api.js`.
+
+---
+
+## API REST (`backend/api/`)
+
+Convención habitual: respuestas JSON con `ok`, `data` o `error`; sesión de personal validada con `api_require_staff_session()` (u otra guarda según el endpoint).
+
+| Endpoint | Método | Uso |
+|----------|--------|-----|
+| `auth_login.php` | POST | Login (usuario interno o cliente tienda) |
+| `auth_logout.php` | GET/POST | Cerrar sesión |
+| `auth_register_cliente.php` | POST | Registro público cliente + usuario rol cliente |
+| `productos_list.php` | GET | Catálogo / POS / inventario |
+| `productos_save.php` | POST | Alta/edición producto, stock |
+| `categorias_list.php`, `categorias_save.php` | GET / POST | Categorías |
+| `estados_list.php` | GET | Estados (productos, etc.) |
+| `clientes_list.php` | GET | Listado clientes (staff) |
+| `ventas_list.php` | GET | Ventas con totales y pagos agregados |
+| `ventas_create.php` | POST | Punto de venta (líneas) |
+| `pagos_create.php` | POST | Registrar pago sobre venta |
+| `metodos_pago_list.php` | GET | Métodos de pago |
+| `empleados_list.php`, `empleados_save.php` | GET / POST | Empleados |
+| `usuarios_list.php`, `usuarios_save.php` | GET / POST | Usuarios internos |
+| `roles_list.php` | GET | Roles |
+| `proveedores_list.php`, `proveedores_save.php` | GET / POST | Proveedores |
+| `contactos_proveedor_list.php`, `contactos_proveedor_save.php` | GET / POST | Contactos |
+| `compras_create.php` | POST | Compra a proveedor |
+| `facturas_save.php` | — | Presente en backend; sin consumo desde el front actual |
+
+Rutas base configuradas en `backend/config/paths.php` (`api` → `/hamilton-store/backend/api` en desarrollo típico).
 
 ---
 
 ## Dashboard
 
-### Funcionalidad
+**Función**: métricas de ventas (suma), pagos acumulados, conteo de clientes y productos, tabla de últimas ventas.
 
-Panel principal con métricas y últimas ventas.
-
-| Métrica | Fuente |
-|---------|--------|
-| Total ventas | Suma de `hamilton_ventas[].total` |
-| Total pagos | Suma de pagos en ventas |
-| Clientes | Count de `hamilton_clientes` |
-| Empleados | Count de `hamilton_empleados` |
-| Últimas ventas | Últimas 8 ventas en tabla |
-
-### Archivos
+**Datos**: prioridad **API** (`ventas_list.php`, `clientes_list.php`, `productos_list.php`). Si falla la petición, **respaldo** desde `localStorage` (`hamilton_ventas`, `hamilton_clientes`) mediante `dashboard.js`.
 
 | Archivo | Rol |
 |---------|-----|
-| `public/pages/sistema/dashboard.php` | UI: cards de métricas, tabla ventas |
-| `public/js/modules/dashboard.js` | Carga datos de localStorage, renderiza |
+| `public/pages/sistema/dashboard.php` | `requireRole(['admin', 'soporte'])` |
+| `public/js/modules/dashboard.js` | Carga API + fallback |
 
 ---
 
-### Estructura general
+## Ventas (punto de venta)
 
-- **Layout**: `app-layout` (flex columna), `app-main` (sidebar + contenido)
-- **Navbar**: Logo a la izquierda, usuario + "Cerrar sesión" en esquina derecha (fondo blanco)
-- **Sidebar**: Menú lateral con 12 módulos (Dashboard, Productos, Inventario, Clientes, etc.)
+**Función**: búsqueda de productos (≥2 caracteres), carrito en memoria, selección de cliente, confirmación que llama a **`ventas_create.php`**.
 
-### Archivos
-
-| Componente | Archivo |
-|------------|---------|
-| Dashboard principal | `public/pages/sistema/dashboard.php` |
-| Navbar del sistema | `public/components/navbar.php` |
-| Sidebar / menú | `public/components/sidebar.php` |
-
-### Módulos del menú
-
-- Dashboard, Productos y Categorías, Inventario, Clientes, Ubicaciones
-- Proveedores, Compras, Ventas, Pagos
-- Empleados, Usuarios, Reportes
-
----
-
-## Ventas (Punto de venta)
-
-### Funcionalidad
-
-Módulo de punto de venta para staff (cajero/admin). Todo en **mock** sin base de datos.
-
-| Función | Descripción |
-|---------|-------------|
-| Buscar producto | Input de búsqueda, mínimo 2 caracteres. Usa `productos.json` |
-| Agregar al carrito | Cantidad editable, subtotal por línea, total general |
-| Seleccionar cliente | Dropdown con clientes de `hamilton_clientes` (localStorage) o `clientes.json` |
-| Confirmar venta | Guarda en `localStorage` clave `hamilton_ventas` |
-
-### Estructura de una venta guardada (alineada con BD)
-
-```json
-{
-  "id": 1,
-  "fecha": "2026-03-17T...",
-  "total": 1298,
-  "clientesIdCliente": 1,
-  "clienteNombre": "Juan Carlos Mora",
-  "empleadosIdEmpleado": 1,
-  "origen": "sistema",
-  "items": [
-    {
-      "productosIdProducto": 1,
-      "nombre": "Tarjeta gráfica RTX 4070",
-      "cantidad": 2,
-      "precioUnitario": 649,
-      "subtotal": 1298
-    }
-  ],
-  "pagos": []
-}
-```
-
-### Archivos
+**Datos**: productos y clientes desde API; persistencia de la venta en **Oracle**.
 
 | Archivo | Rol |
 |---------|-----|
-| `public/pages/sistema/ventas.php` | UI del punto de venta |
-| `public/js/modules/ventas.js` | Lógica: búsqueda, carrito, totales, guardar venta |
+| `public/pages/sistema/ventas.php` | `requireRole(['admin', 'soporte', 'cajero'])` |
+| `public/js/modules/ventas.js` | Lógica POS |
 
 ---
 
 ## Pagos
 
-### Funcionalidad
-
-Registrar pagos y asociarlos a ventas. Usa las ventas guardadas en `localStorage`.
-
-| Función | Descripción |
-|---------|-------------|
-| Seleccionar venta | Solo ventas con saldo pendiente |
-| Método de pago | Efectivo, SINPE, Tarjeta, Transferencia |
-| Monto | Input numérico |
-| Registrar pago | Se agrega a `venta.pagos[]` y se actualiza la venta |
-
-### Estructura de un pago (alineada con BD)
-
-```json
-{
-  "monto": 500,
-  "fechaPago": "2026-03-17T...",
-  "metodosPagoIdMetodoPago": 2
-}
-```
-
-Los métodos de pago provienen de `public/js/mocks/metodos_pago.json`.
-
-### Archivos
+**Función**: listar ventas con saldo pendiente, registrar pago (`pagos_create.php`), métodos desde `metodos_pago_list.php`.
 
 | Archivo | Rol |
 |---------|-----|
-| `public/pages/sistema/pagos.php` | UI: selector venta, método, monto |
-| `public/js/modules/pagos.js` | Lógica: listar ventas pendientes, registrar pago |
+| `public/pages/sistema/pagos.php` | `requireRole(['admin', 'soporte', 'cajero'])` |
+| `public/js/modules/pagos.js` | Carga ventas y registro de pagos |
 
 ---
 
-## Productos
+## Productos y categorías
 
-### Módulo sistema (`productos.php`)
-
-- **Estado**: Placeholder (módulo en desarrollo)
-- **Ruta**: `public/pages/sistema/productos.php`
-- **Uso futuro**: Gestión interna (CRUD de productos y categorías)
-
-### Datos mock
-
-Los productos usados en ventas y tienda provienen de:
-
-| Archivo | Campos |
-|---------|--------|
-| `public/js/mocks/productos.json` | `id`, `nombre`, `precioCompra`, `precioVenta`, `cantidad`, `estado`, `categoriasIdCategoria` |
-
----
-
-## Clientes
-
-### Funcionalidad
-
-CRUD completo con selects dependientes (Provincia → Cantón → Distrito).
-
-| Función | Descripción |
-|---------|-------------|
-| Listar | Tabla con nombre, email, teléfono, ubicación, estado |
-| Nuevo / Editar | Modal con formulario y selects dependientes de ubicación |
-| Eliminar | Confirmación antes de borrar |
-| Persistencia | `localStorage` clave `hamilton_clientes` (seed desde `clientes.json`) |
-
-Los clientes creados aquí aparecen en el selector de Ventas.
-
-### Datos mock
-
-| Archivo | Uso |
-|---------|-----|
-| `clientes.json` | Seed inicial si no hay datos en localStorage |
-| `ubicaciones.json` | Provincia, cantón, distrito (Costa Rica) para selects dependientes |
-
-### Archivos
+**Función**: listado con filtros (búsqueda, categoría, estado), modales para producto y categoría, persistencia **`productos_save.php`**, listas **`categorias_*`**, **`estados_list.php`**.
 
 | Archivo | Rol |
 |---------|-----|
-| `public/pages/sistema/clientes.php` | UI: tabla, modal CRUD |
-| `public/js/modules/clientes.js` | Lógica CRUD, cascada provincia→cantón→distrito |
+| `public/pages/sistema/productos.php` | `requireRole(['admin', 'inventario', 'soporte'])` |
+| `public/js/modules/productos.js` | CRUD UI |
+
+---
+
+## Inventario
+
+**Función**: vista de stock con filtros y ajuste de cantidad según permiso (`data-can-edit-stock` en el body).
+
+**Datos**: `productos_list.php` / actualización vía flujo de productos según implementación en `inventario.js`.
+
+| Archivo | Rol |
+|---------|-----|
+| `public/pages/sistema/inventario.php` | `requireRole(['admin', 'soporte', 'cajero', 'inventario'])` |
+| `public/js/modules/inventario.js` | Tabla y modales |
+
+---
+
+## Clientes (sistema)
+
+**Función**: tabla de clientes con búsqueda; datos desde **`clientes_list.php`** (solo lectura en la UI actual).
+
+| Archivo | Rol |
+|---------|-----|
+| `public/pages/sistema/clientes.php` | admin, soporte, cajero |
+| `public/js/modules/clientes.js` | Listado + filtro |
+
+**Registro de nuevos clientes desde tienda**: `auth_register_cliente.php` (no es el CRUD de esta pantalla).
 
 ---
 
 ## Ubicaciones
 
-### Funcionalidad
+**Función**: CRUD provincias / cantones / distritos en el navegador.
 
-CRUD de provincias, cantones y distritos (Costa Rica). Tres pestañas con tablas independientes.
-
-| Pestaña | CRUD | Dependencias |
-|---------|------|--------------|
-| Provincias | Crear, editar, eliminar | — |
-| Cantones | Crear, editar, eliminar | Provincia (select) |
-| Distritos | Crear, editar, eliminar | Cantón (select), código postal |
-
-Cliente y Proveedores usan ubicaciones para direcciones. Clientes lee de `hamilton_ubicaciones` o `ubicaciones.json`.
-
-### Archivos
+**Datos**: **`localStorage`** clave `hamilton_ubicaciones`, seed desde `public/js/mocks/ubicaciones.json`. **No** está conectado a Oracle en el front actual.
 
 | Archivo | Rol |
 |---------|-----|
-| `public/pages/sistema/ubicaciones.php` | UI: tabs, tablas, modales |
-| `public/js/modules/ubicaciones.js` | CRUD, persistencia localStorage |
+| `public/pages/sistema/ubicaciones.php` | `requireRole(['admin', 'soporte'])` |
+| `public/js/modules/ubicaciones.js` | Persistencia local |
+
+---
+
+## Proveedores y contactos
+
+**Función**: grid de proveedores, panel de contactos, formularios contra API Oracle.
+
+| Archivo | Rol |
+|---------|-----|
+| `public/pages/sistema/proveedores.php` | `requireRole(['admin', 'soporte', 'inventario'])` |
+| `public/js/modules/proveedores.js` | Llamadas API |
+
+---
+
+## Compras
+
+**Función**: carrito de compra a proveedor, **`compras_create.php`**, carga de productos y proveedores por API.
+
+| Archivo | Rol |
+|---------|-----|
+| `public/pages/sistema/compras.php` | `requireRole(['admin', 'soporte', 'inventario'])` |
+| `public/js/modules/compras.js` | Flujo de compra |
 
 ---
 
 ## Empleados
 
-### Funcionalidad
-
-CRUD empleados (nombre, apellido, puesto, email, fecha ingreso, estado).
-
-| Función | Descripción |
-|---------|-------------|
-| Listar | Tabla con datos básicos |
-| Nuevo / Editar | Modal con formulario |
-| Eliminar | Confirmación |
-| Persistencia | `hamilton_empleados` (seed desde `empleados.json`) |
-
-Usuarios requiere empleados para asignar usuario a empleado. Ventas usa `empleadosIdEmpleado`.
-
-### Archivos
+**Función**: CRUD empleados Oracle (`empleados_list.php`, `empleados_save.php`), estados desde API.
 
 | Archivo | Rol |
 |---------|-----|
-| `public/pages/sistema/empleados.php` | UI: tabla, modal |
-| `public/js/modules/empleados.js` | CRUD, localStorage |
+| `public/pages/sistema/empleados.php` | admin, soporte |
+| `public/js/modules/empleados.js` | CRUD |
 
 ---
 
 ## Usuarios
 
-### Funcionalidad
-
-CRUD usuarios vinculados a empleados (1 usuario por empleado).
-
-| Campo | Descripción |
-|-------|-------------|
-| Usuario | Login (username) |
-| Contraseña | Obligatoria al crear, opcional al editar |
-| Rol | admin, cajero, inventario, cliente |
-| Estado | activo, inactivo |
-| Empleado | Select de empleados sin usuario (o el actual si edita) |
-
-### Archivos
+**Función**: CRUD usuarios vinculados a empleados; roles y estados desde API.
 
 | Archivo | Rol |
 |---------|-----|
-| `public/pages/sistema/usuarios.php` | UI: tabla, modal |
-| `public/js/modules/usuarios.js` | CRUD, validación empleado único |
-| `public/js/mocks/usuarios.json` | Seed inicial |
+| `public/pages/sistema/usuarios.php` | admin |
+| `public/js/modules/usuarios.js` | CRUD |
 
 ---
 
 ## Reportes
 
-### Funcionalidad
+**Función**: filtros por fechas, tablas de ventas y pagos.
 
-Tablas de ventas y pagos con filtros por rango de fechas.
+**Datos**: prioridad **`ventas_list.php`**; respaldo **`localStorage`** (`hamilton_ventas`) en `reportes.js` si la API falla.
 
-| Función | Descripción |
+| Archivo | Rol |
+|---------|-----|
+| `public/pages/sistema/reportes.php` | `requireRole(['admin', 'soporte'])` |
+| `public/js/modules/reportes.js` | Agregación y filtros |
+
+---
+
+## Tienda pública
+
+### Flujo resumido
+
+1. **Catálogo**: `productos_list.php` vía `tienda-productos.js`. Quien **no** es rol `cliente` ve un **aviso único** sobre el grid (no CTA repetido en cada tarjeta) y no puede agregar al carrito (`HAMILTON_TIENDA_PUEDE_COMPRAR`).
+2. **Registro**: `public/pages/auth/registro_cliente.php` → `auth_register_cliente.php`. La ruta `public/pages/tienda/registro.php` **redirige** al registro real.
+3. **Login**: `public/pages/auth/login.php` → `auth_login.php`; parámetro `next=checkout` para volver al checkout.
+4. **Carrito**: `localStorage` **`hamilton_tienda_carrito`** (`tienda-carrito.js`).
+5. **Checkout**: `checkout.php` exige sesión **`cliente`** y carga nombre desde Oracle. La **pasarela** sigue siendo **mock** (`tienda-checkout.js`): métodos desde `public/js/mocks/metodos_pago.json` y la “venta” se guarda en **`localStorage`** (`hamilton_ventas`), no en Oracle vía `ventas_create.php` en el flujo actual.
+
+### Archivos clave
+
+| Archivo | Descripción |
 |---------|-------------|
-| Filtros | Fecha desde / hasta (por defecto últimos 30 días) |
-| Tabla ventas | ID, fecha, cliente, origen, total |
-| Tabla pagos | Venta #, fecha pago, monto |
-| Totales | Suma de ventas y pagos filtrados |
-
-### Datos
-
-Usa `localStorage` clave `hamilton_ventas`.
-
-### Archivos
-
-| Archivo | Rol |
-|---------|-----|
-| `public/pages/sistema/reportes.php` | UI: filtros, tablas |
-| `public/js/modules/reportes.js` | Carga ventas, filtra por fechas, renderiza |
+| `public/pages/tienda/Homepage.php` | Landing y grid destacados |
+| `public/pages/tienda/AllProducts.php`, `catalogo.php` | Catálogos |
+| `public/pages/tienda/checkout.php` | Checkout (sesión cliente) |
+| `public/pages/tienda/registro.php` | Redirect a `auth/registro_cliente.php` |
+| `public/components/layout_tienda.php` | Navbar, `API_BASE`, flags tienda |
+| `public/js/modules/tienda-productos.js` | Grid de productos |
+| `public/js/modules/tienda-carrito.js` | Carrito |
+| `public/js/modules/tienda-checkout.js` | Mock de pago y escritura local de venta |
+| `public/js/modules/auth-cliente.js` | Legado (cookie); el flujo principal es **sesión PHP** |
 
 ---
 
-## Tienda pública (Clientes)
+## Almacenamiento en el navegador
 
-### Flujo
-
-1. **Registro**: Crear cuenta (nombre, apellido, email, teléfono, contraseña). Se agrega a `hamilton_clientes` y se establece cookie de sesión.
-2. **Login cliente**: Email + contraseña. Valida contra `hamilton_clientes`. Cookie `hamilton_cliente` por 7 días.
-3. **Homepage / Catálogo**: Productos desde `productos.json`, stepper de cantidad + "Agregar al carrito"
-4. **Carrito**: `localStorage` clave `hamilton_tienda_carrito`
-5. **Checkout**: Si hay cliente logueado (cookie), la venta se vincula a ese `clientesIdCliente`. Si no, "Cliente tienda".
-6. **Confirmación mock**: Se crea venta en `hamilton_ventas` y se vacía el carrito
-
-### Unificación clientes
-
-- **Mismo pool**: Los clientes del CRUD (staff) y los que se registran/compran en la tienda son la misma entidad.
-- **Cliente sin contraseña**: Si staff crea un cliente y luego esa persona va a "Registro" con el mismo email, se establece su contraseña y puede comprar.
-- **Campo `password`**: Solo en mock (no existe en BD). No se persiste al conectar Oracle.
-
-### Archivos
-
-| Archivo | Rol |
-|---------|-----|
-| `public/pages/tienda/registro.php` | Registro de clientes |
-| `public/pages/tienda/Homepage.php` | Productos destacados, agregar al carrito |
-| `public/pages/tienda/catalogo.php` | Catálogo de productos |
-| `public/pages/tienda/checkout.php` | Checkout y pasarela de pago mock |
-| `public/js/modules/auth-cliente.js` | Registro, login cliente, cookie de sesión |
-| `public/js/modules/tienda-carrito.js` | Carrito (add, remove, getItems, getTotal) |
-| `public/js/modules/tienda-productos.js` | Carga productos, stepper cantidad |
-| `public/js/modules/tienda-checkout.js` | Checkout y registro de venta mock |
+| Clave / uso | Contenido |
+|-------------|-----------|
+| `hamilton_tienda_carrito` | Ítems del carrito de la tienda |
+| `hamilton_ventas` | Respaldo / demo de ventas y reportes; **checkout tienda** añade aquí en el mock |
+| `hamilton_ubicaciones` | CRUD ubicaciones (solo front) |
+| `hamilton_empleados`, `hamilton_usuarios`, … | Posible seed o legado; operación real vía API donde esté cableado |
 
 ---
 
-## Almacenamiento (localStorage)
+## Mocks (`public/js/mocks/`)
 
-| Clave | Contenido |
-|-------|-----------|
-| `hamilton_ventas` | Array de ventas (sistema + tienda) |
-| `hamilton_clientes` | Array de clientes (CRUD clientes) |
-| `hamilton_ubicaciones` | { provincias, cantones, distritos } |
-| `hamilton_empleados` | Array de empleados |
-| `hamilton_usuarios` | Array de usuarios |
-| `hamilton_tienda_carrito` | Array de items en carrito del cliente |
+| Recurso | Uso actual típico |
+|---------|-------------------|
+| `metodos_pago.json` | Selector de métodos en **checkout tienda** (mock) |
+| `ubicaciones.json` | Seed inicial de ubicaciones |
+| Otros JSON | Referencia o desarrollo; el catálogo de productos del sistema y la tienda viene de **Oracle** vía API |
 
 ---
 
-## Resumen de datos mock (alineados con esquema Oracle)
+## Layout del sistema
 
-| Mock | Usado en |
-|------|----------|
-| `productos.json` | Ventas (staff), Tienda (catálogo, checkout) |
-| `clientes.json` | Seed inicial para clientes; ventas usa `hamilton_clientes` si existe |
-| `ubicaciones.json` | Seed para Ubicaciones; Clientes usa `hamilton_ubicaciones` si existe |
-| `usuarios.json` | Seed para Usuarios |
-| `categorias.json` | Referencia para productos (categoriasIdCategoria) |
-| `metodos_pago.json` | Ventas (pagos), Pagos (registro), Checkout tienda |
-| `empleados.json` | Referencia para ventas (empleadosIdEmpleado) |
-| `ventas.json` | No se usa; ventas reales van a `localStorage` |
+- **Navbar / sidebar**: `public/components/navbar.php`, `sidebar.php`.
+- **Scripts comunes**: `public/components/head.php`, `scripts_bootstrap.php`; páginas sistema incluyen `Api` vía variable de entorno en JS similar a la tienda (según `head` / pie de cada página).
+
+Para detalles de columnas y paquetes PL/SQL, revisar scripts en **`docs/sql/`** y el código de cada endpoint en `backend/api/`.

@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/../../../backend/config/auth_guard.php';
-requireRole(['admin', 'cajero']);
+requireRole(['admin', 'soporte', 'cajero']);
 $basePath = dirname(dirname(dirname($_SERVER['SCRIPT_NAME'])));
 if ($basePath === '/' || $basePath === '\\') $basePath = '';
 $pageTitle = 'Ventas - M. Hamilton Store';
@@ -88,7 +88,8 @@ $role = $_SESSION['role'] ?? '';
         </main>
     </div>
     <?php include __DIR__ . '/../../components/footer.php'; ?>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+    <?php include __DIR__ . '/../../components/scripts_bootstrap.php'; ?>
+    <script src="<?php echo htmlspecialchars($basePath); ?>/js/services/api.js"></script>
     <script src="<?php echo htmlspecialchars($basePath); ?>/js/app.js"></script>
     <script src="<?php echo htmlspecialchars($basePath); ?>/js/modules/ventas.js"></script>
 </body>

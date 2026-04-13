@@ -1,54 +1,27 @@
 /**
- * empleados.js - CRUD empleados
- * localStorage hamilton_empleados, seed desde empleados.json
+ * empleados.js — CRUD empleados Oracle (pkg_empleados).
  */
 (function () {
   'use strict';
 
-  const STORAGE_KEY = 'hamilton_empleados';
-  const basePath = (document.body.dataset.basePath || '/hamilton-store/public').replace(/\/$/, '');
-
-  let estados = [];
-  let modalInstance = null;
-
-  function fetchJson(path) {
-    return fetch(basePath + path).then(r => (r.ok ? r.json() : Promise.reject()));
+  function uiAlert(msg, title) {
+    if (window.UiDialog && window.UiDialog.alert) {
+      return window.UiDialog.alert(String(msg), { title: title || 'Empleados' });
+    }
+    alert(msg);
+    return Promise.resolve();
   }
 
-  function getEmpleados() {
-    try {
-      return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-    } catch (e) { return []; }
+  function uiConfirm(msg, title) {
+    if (window.UiDialog && window.UiDialog.confirm) {
+      return window.UiDialog.confirm(String(msg), { title: title || 'Confirmar' });
+    }
+    return Promise.resolve(confirm(msg));
   }
 
-  function saveEmpleados(arr) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
-    renderTable();
-  }
-
-  function seed() {
-    if (getEmpleados().length > 0) return Promise.resolve();
-    return fetchJson('/js/mocks/empleados.json').then(data => {
-      saveEmpleados(data);
-      return data;
-    }).catch(() => []);
-  }
-
-  function getEstadoNombre(estadoId) {
-    const e = estados.find(x => x.id === estadoId);
-    return e ? e.nombre : (estadoId === 1 ? 'activo' : estadoId === 2 ? 'inactivo' : '—');
-  }
-
-  function llenarEstadosSelect() {
-    const sel = document.getElementById('empleadoEstado');
-    sel.innerHTML = '<option value="">-- Seleccionar --</option>';
-    estados.forEach(e => {
-      const opt = document.createElement('option');
-      opt.value = e.id;
-      opt.textContent = e.nombre;
-      sel.appendChild(opt);
-    });
-  }
+  var empleados = [];
+  var estados = [];
+  var modalInstance = null;
 
   function escapeHtml(s) {
     const div = document.createElement('div');
@@ -56,119 +29,220 @@
     return div.innerHTML;
   }
 
+  function formatFechaDisplay(emp) {
+    var iso = emp.fechaIngresoIso || emp.fechaIngreso;
+    if (!iso) return '—';
+    var d = new Date(iso);
+    return isNaN(d.getTime()) ? String(iso).slice(0, 10) : d.toLocaleDateString('es-CR');
+  }
+
+  function llenarEstadosSelect() {
+    const sel = document.getElementById('empleadoEstado');
+    if (!sel) return;
+    sel.innerHTML = '<option value="">-- Seleccionar --</option>';
+    estados.forEach(function (e) {
+      const opt = document.createElement('option');
+      opt.value = String(e.id);
+      opt.textContent = e.nombre;
+      sel.appendChild(opt);
+    });
+  }
+
   function renderTable() {
-    const emp = getEmpleados();
     const tbody = document.getElementById('empleadosBody');
     const empty = document.getElementById('empleadosEmpty');
     const count = document.getElementById('empleadosCount');
+    if (!tbody || !empty || !count) return;
 
     tbody.innerHTML = '';
-    count.textContent = emp.length + ' empleado(s)';
+    count.textContent = empleados.length + ' empleado(s)';
 
-    if (emp.length === 0) {
+    if (empleados.length === 0) {
       empty.style.display = 'block';
       return;
     }
     empty.style.display = 'none';
 
-    emp.forEach(e => {
+    empleados.forEach(function (e) {
       const tr = document.createElement('tr');
       const nombreCompleto = [e.nombre, e.apellido].filter(Boolean).join(' ');
-      tr.innerHTML = `
-        <td>${escapeHtml(nombreCompleto)}</td>
-        <td>${escapeHtml(e.puesto)}</td>
-        <td>${escapeHtml(e.email)}</td>
-        <td>${escapeHtml((e.fechaIngreso || '').slice(0, 10))}</td>
-        <td><span class="badge ${(e.estadosIdEstado === 1 || e.estado === 'activo') ? 'bg-success' : 'bg-secondary'}">${escapeHtml(getEstadoNombre(e.estadosIdEstado) || e.estado || 'activo')}</span></td>
-        <td class="text-end">
-          <button type="button" class="btn btn-outline-primary btn-sm me-1 btn-editar" data-id="${e.id}" title="Editar"><i class="bi bi-pencil"></i></button>
-          <button type="button" class="btn btn-outline-danger btn-sm btn-eliminar" data-id="${e.id}" title="Eliminar"><i class="bi bi-trash"></i></button>
-        </td>
-      `;
+      const badgeClass =
+        String(e.estado || '').toUpperCase().indexOf('ACTIVO') !== -1 ? 'bg-success' : 'bg-secondary';
+      tr.innerHTML =
+        '<td>' +
+        escapeHtml(nombreCompleto) +
+        '</td><td>' +
+        escapeHtml(e.puesto || '') +
+        '</td><td>' +
+        escapeHtml(e.email || '') +
+        '</td><td>' +
+        escapeHtml(formatFechaDisplay(e)) +
+        '</td><td><span class="badge ' +
+        badgeClass +
+        '">' +
+        escapeHtml(e.estado || '') +
+        '</span></td><td class="text-end">' +
+        '<button type="button" class="btn btn-outline-primary btn-sm me-1 btn-editar" data-id="' +
+        e.id +
+        '"><i class="bi bi-pencil"></i></button>' +
+        '<button type="button" class="btn btn-outline-danger btn-sm btn-eliminar" data-id="' +
+        e.id +
+        '"><i class="bi bi-trash"></i></button>' +
+        '</td>';
       tbody.appendChild(tr);
     });
 
-    tbody.querySelectorAll('.btn-editar').forEach(b => b.addEventListener('click', () => abrirEditar(parseInt(b.dataset.id, 10))));
-    tbody.querySelectorAll('.btn-eliminar').forEach(b => b.addEventListener('click', () => eliminar(parseInt(b.dataset.id, 10))));
+    tbody.querySelectorAll('.btn-editar').forEach(function (b) {
+      b.addEventListener('click', function () {
+        abrirEditar(parseInt(b.getAttribute('data-id'), 10));
+      });
+    });
+    tbody.querySelectorAll('.btn-eliminar').forEach(function (b) {
+      b.addEventListener('click', function () {
+        eliminar(parseInt(b.getAttribute('data-id'), 10));
+      });
+    });
   }
 
   function abrirNuevo() {
-    document.getElementById('modalEmpleadoLabel').innerHTML = '<i class="bi bi-person-plus me-2"></i>Nuevo empleado';
+    document.getElementById('modalEmpleadoLabel').innerHTML =
+      '<i class="bi bi-person-plus me-2"></i>Nuevo empleado';
     document.getElementById('formEmpleado').reset();
     document.getElementById('empleadoId').value = '';
-    document.getElementById('empleadoFechaIngreso').value = new Date().toISOString().slice(0, 10);
-    document.getElementById('empleadoEstado').value = 1;
+    document.getElementById('empleadoFechaGrupo').classList.add('d-none');
+    document.getElementById('empleadoFechaIngreso').value = '';
+    llenarEstadosSelect();
+    if (estados.length) {
+      document.getElementById('empleadoEstado').value = String(estados[0].id);
+    }
     modalInstance = new bootstrap.Modal(document.getElementById('modalEmpleado'));
     modalInstance.show();
   }
 
   function abrirEditar(id) {
-    const emp = getEmpleados().find(e => e.id === id);
+    const emp = empleados.find(function (x) {
+      return x.id === id;
+    });
     if (!emp) return;
 
-    document.getElementById('modalEmpleadoLabel').innerHTML = '<i class="bi bi-pencil me-2"></i>Editar empleado';
-    document.getElementById('empleadoId').value = emp.id;
-    document.getElementById('empleadoNombre').value = emp.nombre;
-    document.getElementById('empleadoApellido').value = emp.apellido;
-    document.getElementById('empleadoPuesto').value = emp.puesto;
-    document.getElementById('empleadoEmail').value = emp.email;
-    document.getElementById('empleadoFechaIngreso').value = (emp.fechaIngreso || '').slice(0, 10);
-    document.getElementById('empleadoEstado').value = emp.estadosIdEstado || (emp.estado === 'inactivo' ? 2 : 1);
+    document.getElementById('modalEmpleadoLabel').innerHTML =
+      '<i class="bi bi-pencil me-2"></i>Editar empleado';
+    document.getElementById('empleadoId').value = String(emp.id);
+    document.getElementById('empleadoNombre').value = emp.nombre || '';
+    document.getElementById('empleadoApellido').value = emp.apellido || '';
+    document.getElementById('empleadoPuesto').value = emp.puesto || '';
+    document.getElementById('empleadoEmail').value = emp.email || '';
+    document.getElementById('empleadoFechaGrupo').classList.remove('d-none');
+    document.getElementById('empleadoFechaIngreso').value = formatFechaDisplay(emp);
+    llenarEstadosSelect();
+    document.getElementById('empleadoEstado').value = String(emp.idEstado || '');
 
     modalInstance = new bootstrap.Modal(document.getElementById('modalEmpleado'));
     modalInstance.show();
   }
 
   function guardar() {
-    const id = document.getElementById('empleadoId').value ? parseInt(document.getElementById('empleadoId').value, 10) : null;
+    if (!window.Api) {
+      void uiAlert('API no disponible.', 'Error');
+      return;
+    }
+    const id = document.getElementById('empleadoId').value
+      ? parseInt(document.getElementById('empleadoId').value, 10)
+      : null;
     const nombre = document.getElementById('empleadoNombre').value.trim();
     const apellido = document.getElementById('empleadoApellido').value.trim();
     const puesto = document.getElementById('empleadoPuesto').value.trim();
     const email = document.getElementById('empleadoEmail').value.trim();
-    const fechaIngreso = document.getElementById('empleadoFechaIngreso').value;
-    const estadosIdEstado = parseInt(document.getElementById('empleadoEstado').value, 10) || 1;
+    const estadosIdEstado = parseInt(document.getElementById('empleadoEstado').value, 10);
 
-    if (!nombre || !apellido || !puesto || !email || !fechaIngreso) {
-      alert('Complete los campos obligatorios.');
+    if (!nombre || !apellido || !puesto || !email || !estadosIdEstado) {
+      void uiAlert('Complete los campos obligatorios.');
       return;
     }
 
-    const arr = getEmpleados();
-
+    const body = {
+      nombre: nombre,
+      apellido: apellido,
+      puesto: puesto,
+      email: email,
+      idEstado: estadosIdEstado,
+    };
     if (id) {
-      const idx = arr.findIndex(e => e.id === id);
-      if (idx >= 0) {
-        arr[idx] = { ...arr[idx], nombre, apellido, puesto, email, fechaIngreso, estadosIdEstado };
-        saveEmpleados(arr);
-        modalInstance.hide();
-        return;
-      }
+      body.action = 'update';
+      body.id = id;
+    } else {
+      body.action = 'insert';
     }
 
-    const maxId = Math.max(0, ...arr.map(e => e.id || 0)) + 1;
-    arr.push({ id: maxId, nombre, apellido, puesto, email, fechaIngreso, estadosIdEstado });
-    saveEmpleados(arr);
-    modalInstance.hide();
+    const btn = document.getElementById('btnGuardarEmpleado');
+    if (btn) btn.disabled = true;
+
+    window.Api
+      .post('/empleados_save.php', body)
+      .then(function () {
+        if (modalInstance) modalInstance.hide();
+        return loadEmpleados();
+      })
+      .then(function () {
+        return uiAlert(
+          body.action === 'insert' ? 'Empleado creado.' : 'Empleado actualizado.',
+          'Listo'
+        );
+      })
+      .catch(function (e) {
+        void uiAlert(String(e.message || e), 'Error');
+      })
+      .finally(function () {
+        if (btn) btn.disabled = false;
+      });
   }
 
   function eliminar(id) {
-    if (!confirm('¿Eliminar este empleado?')) return;
-    const arr = getEmpleados().filter(e => e.id !== id);
-    saveEmpleados(arr);
+    uiConfirm('¿Eliminar este empleado?', 'Eliminar empleado').then(function (ok) {
+      if (!ok || !window.Api) return;
+      window.Api
+        .post('/empleados_save.php', { action: 'delete', id: id })
+        .then(function () {
+          return loadEmpleados();
+        })
+        .then(function () {
+          return uiAlert('Empleado eliminado.', 'Listo');
+        })
+        .catch(function (e) {
+          void uiAlert(String(e.message || e), 'Error');
+        });
+    });
+  }
+
+  function loadEmpleados() {
+    const tbody = document.getElementById('empleadosBody');
+    if (!tbody || !window.Api) return Promise.resolve();
+    tbody.innerHTML =
+      '<tr><td colspan="6" class="text-center py-4"><div class="spinner-border spinner-border-sm text-secondary" role="status"></div></td></tr>';
+
+    return Promise.all([
+      window.Api.get('/empleados_list.php'),
+      window.Api.get('/estados_list.php').catch(function () {
+        return { data: [] };
+      }),
+    ])
+      .then(function (results) {
+        empleados = results[0].data || [];
+        estados = results[1].data || [];
+        llenarEstadosSelect();
+        renderTable();
+      })
+      .catch(function (e) {
+        empleados = [];
+        renderTable();
+        void uiAlert('No se pudieron cargar empleados: ' + (e.message || ''), 'Error');
+      });
   }
 
   document.addEventListener('DOMContentLoaded', function () {
-    fetchJson('/js/mocks/estados.json').then(data => { estados = data; llenarEstadosSelect(); }).catch(() => {
-      estados = [{id:1,nombre:'activo'},{id:2,nombre:'inactivo'}];
-      llenarEstadosSelect();
-    });
-    seed().then(() => renderTable());
+    loadEmpleados();
 
     document.getElementById('btnNuevoEmpleado').addEventListener('click', abrirNuevo);
-    document.getElementById('linkNuevoEmpleado').addEventListener('click', function (e) {
-      e.preventDefault();
-      abrirNuevo();
-    });
     document.getElementById('btnGuardarEmpleado').addEventListener('click', guardar);
   });
 })();

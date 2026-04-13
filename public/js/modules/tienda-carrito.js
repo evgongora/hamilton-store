@@ -7,18 +7,24 @@
   const STORAGE_KEY = 'hamilton_tienda_carrito';
   const basePath = '/hamilton-store/public';
 
+  function puedeComprarTienda() {
+    return window.HAMILTON_TIENDA_PUEDE_COMPRAR === true;
+  }
+
   window.TiendaCarrito = {
     getItems() {
       return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
     },
 
     save(items) {
+      if (!puedeComprarTienda()) return;
       localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
       this.updateBadge();
       window.dispatchEvent(new CustomEvent('carrito-changed', { detail: { items } }));
     },
 
     add(producto, cantidad) {
+      if (!puedeComprarTienda()) return;
       const qty = Math.max(1, parseInt(cantidad, 10) || 1);
       const maxStock = producto.cantidad ?? 999;
       let items = this.getItems();
@@ -37,11 +43,13 @@
     },
 
     remove(productoId) {
+      if (!puedeComprarTienda()) return;
       let items = this.getItems().filter(i => i.productoId !== productoId);
       this.save(items);
     },
 
     setQty(productoId, cantidad) {
+      if (!puedeComprarTienda()) return;
       let items = this.getItems();
       const item = items.find(i => i.productoId === productoId);
       if (!item) return;
@@ -55,6 +63,12 @@
     },
 
     clear() {
+      if (!puedeComprarTienda()) {
+        try {
+          localStorage.removeItem(STORAGE_KEY);
+        } catch (e) {}
+        return;
+      }
       this.save([]);
     },
 
@@ -73,6 +87,11 @@
   };
 
   document.addEventListener('DOMContentLoaded', function () {
+    if (!puedeComprarTienda()) {
+      try {
+        localStorage.removeItem(STORAGE_KEY);
+      } catch (e) {}
+    }
     window.TiendaCarrito.updateBadge();
   });
 })();

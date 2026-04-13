@@ -3,6 +3,9 @@
  * sidebar.php - Menú lateral del sistema
  * Requiere: $basePath, $currentPage (opcional, para marcar activo)
  */
+if (!function_exists('hamilton_staff_menu_keys')) {
+    require_once __DIR__ . '/../../backend/config/auth_guard.php';
+}
 $currentPage = $currentPage ?? '';
 $pagesPath = $basePath . '/pages/sistema';
 $currentRole = $_SESSION['role'] ?? '';
@@ -18,17 +21,12 @@ $menuItems = [
     ['key' => 'ventas', 'label' => 'Ventas', 'icon' => 'bi-cart-check', 'url' => 'ventas.php'],
     ['key' => 'pagos', 'label' => 'Pagos', 'icon' => 'bi-credit-card', 'url' => 'pagos.php'],
     ['key' => 'empleados', 'label' => 'Empleados', 'icon' => 'bi-person-badge', 'url' => 'empleados.php'],
-    ['key' => 'usuarios', 'label' => 'Usuarios', 'icon' => 'bi-person-gear', 'url' => 'usuarios.php'],
+    ['key' => 'usuarios', 'label' => 'Usuarios', 'icon' => 'bi-person-lines-fill', 'url' => 'usuarios.php'],
     ['key' => 'reportes', 'label' => 'Reportes', 'icon' => 'bi-graph-up', 'url' => 'reportes.php'],
 ];
 
-if ($currentRole === 'inventario') {
-    $allowedKeys = ['productos', 'inventario', 'proveedores', 'compras'];
-    $menuItems = array_values(array_filter($menuItems, function ($item) use ($allowedKeys) {
-        return in_array($item['key'], $allowedKeys, true);
-    }));
-} elseif ($currentRole === 'cajero') {
-    $allowedKeys = ['clientes', 'inventario', 'ventas', 'pagos'];
+$allowedKeys = hamilton_staff_menu_keys($currentRole);
+if ($allowedKeys !== []) {
     $menuItems = array_values(array_filter($menuItems, function ($item) use ($allowedKeys) {
         return in_array($item['key'], $allowedKeys, true);
     }));
