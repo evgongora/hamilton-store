@@ -1,0 +1,49 @@
+{
+  "provincias": [
+    {"id": 1, "nombre": "San Jos\u00e9"},
+    {"id": 2, "nombre": "Alajuela"},
+    {"id": 3, "nombre": "Cartago"},
+    {"id": 4, "nombre": "Heredia"},
+    {"id": 5, "nombre": "Guanacaste"},
+    {"id": 6, "nombre": "Puntarenas"},
+    {"id": 7, "nombre": "Lim\u00f3n"}
+  ],
+  "cantones": [
+    {"id": 1, "nombre": "Central", "provinciasIdProvincia": 1},
+    {"id": 2, "nombre": "Escaz\u00fa", "provinciasIdProvincia": 1},
+    {"id": 3, "nombre": "Desamparados", "provinciasIdProvincia": 1},
+    {"id": 4, "nombre": "Central", "provinciasIdProvincia": 2},
+    {"id": 5, "nombre": "San Ram\u00f3n", "provinciasIdProvincia": 2},
+    {"id": 6, "nombre": "Central", "provinciasIdProvincia": 3},
+    {"id": 7, "nombre": "La Uni\u00f3n", "provinciasIdProvincia": 3},
+    {"id": 8, "nombre": "Central", "provinciasIdProvincia": 4},
+    {"id": 9, "nombre": "Bel\u00e9n", "provinciasIdProvincia": 4},
+    {"id": 10, "nombre": "Liberia", "provinciasIdProvincia": 5},
+    {"id": 11, "nombre": "Nicoya", "provinciasIdProvincia": 5},
+    {"id": 12, "nombre": "Central", "provinciasIdProvincia": 6},
+    {"id": 13, "nombre": "Quepos", "provinciasIdProvincia": 6},
+    {"id": 14, "nombre": "Central", "provinciasIdProvincia": 7},
+    {"id": 15, "nombre": "Gu\u00e1piles", "provinciasIdProvincia": 7}
+  ],
+  "distritos": [
+    {"id": 1, "nombre": "Carmen", "cantonesIdCanton": 1, "codigoPostal": 10101},
+    {"id": 2, "nombre": "Merced", "cantonesIdCanton": 1, "codigoPostal": 10102},
+    {"id": 3, "nombre": "Hospital", "cantonesIdCanton": 1, "codigoPostal": 10103},
+    {"id": 4, "nombre": "Escaz\u00fa", "cantonesIdCanton": 2, "codigoPostal": 10201},
+    {"id": 5, "nombre": "San Rafael", "cantonesIdCanton": 2, "codigoPostal": 10202},
+    {"id": 6, "nombre": "Desamparados", "cantonesIdCanton": 3, "codigoPostal": 10301},
+    {"id": 7, "nombre": "San Miguel", "cantonesIdCanton": 3, "codigoPostal": 10302},
+    {"id": 8, "nombre": "Alajuela", "cantonesIdCanton": 4, "codigoPostal": 20101},
+    {"id": 9, "nombre": "San Ram\u00f3n", "cantonesIdCanton": 5, "codigoPostal": 20201},
+    {"id": 10, "nombre": "Cartago", "cantonesIdCanton": 6, "codigoPostal": 30101},
+    {"id": 11, "nombre": "Tres R\u00edos", "cantonesIdCanton": 7, "codigoPostal": 30201},
+    {"id": 12, "nombre": "Heredia", "cantonesIdCanton": 8, "codigoPostal": 40101},
+    {"id": 13, "nombre": "San Antonio", "cantonesIdCanton": 9, "codigoPostal": 40201},
+    {"id": 14, "nombre": "Liberia", "cantonesIdCanton": 10, "codigoPostal": 50101},
+    {"id": 15, "nombre": "Nicoya", "cantonesIdCanton": 11, "codigoPostal": 50201},
+    {"id": 16, "nombre": "Puntarenas", "cantonesIdCanton": 12, "codigoPostal": 60101},
+    {"id": 17, "nombre": "Quepos", "cantonesIdCanton": 13, "codigoPostal": 60601},
+    {"id": 18, "nombre": "Lim\u00f3n", "cantonesIdCanton": 14, "codigoPostal": 70101},
+    {"id": 19, "nombre": "Gu\u00e1piles", "cantonesIdCanton": 15, "codigoPostal": 70201}
+  ]
+}

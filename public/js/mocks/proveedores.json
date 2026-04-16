@@ -1,0 +1,158 @@
+[
+  {
+    "id": 1,
+    "nombre": "TechSource CR",
+    "contactos": [
+      {
+        "nombre": "Andrea Solano",
+        "telefono": "2222-4101",
+        "email": "andrea.solano@techsourcecr.com",
+        "puesto": "Ejecutiva comercial"
+      },
+      {
+        "nombre": "Marco Brenes",
+        "telefono": "2222-4199",
+        "email": "marco.brenes@techsourcecr.com",
+        "puesto": "Soporte de cuentas"
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "nombre": "Distribuidora Nova",
+    "contactos": [
+      {
+        "nombre": "Luis Mena",
+        "telefono": "2256-1880",
+        "email": "lmena@distribuidoranova.com",
+        "puesto": "Asesor de ventas"
+      },
+      {
+        "nombre": "Rebeca Soto",
+        "telefono": "2256-1887",
+        "email": "rsoto@distribuidoranova.com",
+        "puesto": "Facturacion"
+      }
+    ]
+  },
+  {
+    "id": 3,
+    "nombre": "CompuGlobal Parts",
+    "contactos": [
+      {
+        "nombre": "Mariela Quesada",
+        "telefono": "2430-5521",
+        "email": "mquesada@compuglobalparts.com",
+        "puesto": "Gerente de cuenta"
+      }
+    ]
+  },
+  {
+    "id": 4,
+    "nombre": "Importadora Silicon",
+    "contactos": [
+      {
+        "nombre": "Jose Vargas",
+        "telefono": "2291-7743",
+        "email": "jvargas@importadorasilicon.com",
+        "puesto": "Encargado comercial"
+      },
+      {
+        "nombre": "Natalia Zuniga",
+        "telefono": "2291-7750",
+        "email": "nzuniga@importadorasilicon.com",
+        "puesto": "Coordinadora logistica"
+      }
+    ]
+  },
+  {
+    "id": 5,
+    "nombre": "RedPoint Supplies",
+    "contactos": [
+      {
+        "nombre": "Camila Herrera",
+        "telefono": "4001-2205",
+        "email": "camila.herrera@redpointsupplies.com",
+        "puesto": "Representante regional"
+      }
+    ]
+  },
+  {
+    "id": 6,
+    "nombre": "Electronica del Valle",
+    "contactos": [
+      {
+        "nombre": "Pablo Arce",
+        "telefono": "2460-9034",
+        "email": "parce@electronicadelvalle.com",
+        "puesto": "Ventas corporativas"
+      },
+      {
+        "nombre": "Laura Coto",
+        "telefono": "2460-9040",
+        "email": "lcoto@electronicadelvalle.com",
+        "puesto": "Atencion postventa"
+      }
+    ]
+  },
+  {
+    "id": 7,
+    "nombre": "LogiTech Imports",
+    "contactos": [
+      {
+        "nombre": "Fernanda Rojas",
+        "telefono": "2288-6112",
+        "email": "fernanda.rojas@logitechimports.com",
+        "puesto": "Ejecutiva senior"
+      }
+    ]
+  },
+  {
+    "id": 8,
+    "nombre": "Master Components",
+    "contactos": [
+      {
+        "nombre": "Daniel Urena",
+        "telefono": "2522-3490",
+        "email": "durena@mastercomponents.com",
+        "puesto": "Administrador de cuenta"
+      },
+      {
+        "nombre": "Silvia Montero",
+        "telefono": "2522-3498",
+        "email": "smontero@mastercomponents.com",
+        "puesto": "Cobros"
+      }
+    ]
+  },
+  {
+    "id": 9,
+    "nombre": "Digital Hub Wholesale",
+    "contactos": [
+      {
+        "nombre": "Valeria Campos",
+        "telefono": "2267-1184",
+        "email": "vcampos@digitalhubwholesale.com",
+        "puesto": "Coordinadora de mayoreo"
+      }
+    ]
+  },
+  {
+    "id": 10,
+    "nombre": "MicroNet Trading",
+    "contactos": [
+      {
+        "nombre": "Esteban Mora",
+        "telefono": "2234-9908",
+        "email": "esteban.mora@micronettrading.com",
+        "puesto": "Asesor comercial"
+      },
+      {
+        "nombre": "Karen Jimenez",
+        "telefono": "2234-9915",
+        "email": "kjimenez@micronettrading.com",
+        "puesto": "Coordinadora administrativa"
+      }
+    ]
+  }
+]
