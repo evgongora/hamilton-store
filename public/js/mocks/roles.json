@@ -1,0 +1,6 @@
+[
+  {"id": 1, "nombre": "admin"},
+  {"id": 2, "nombre": "cajero"},
+  {"id": 3, "nombre": "inventario"},
+  {"id": 4, "nombre": "cliente"}
+]

@@ -1,0 +1,6 @@
+[
+  {"id": 1, "nombre": "Efectivo"},
+  {"id": 2, "nombre": "SINPE"},
+  {"id": 3, "nombre": "Tarjeta"},
+  {"id": 4, "nombre": "Transferencia"}
+]
