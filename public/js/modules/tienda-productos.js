@@ -78,10 +78,8 @@
     const badgeClass = opt?.badgeClass || 'bg-dark';
     const hasOferta = opt?.precioAntes;
     const maxStock = Math.max(1, p.cantidad ?? 99);
-    const puede = puedeComprarTienda();
 
-    const footerComprar = puede
-      ? `
+    const footerComprar = `
           <div class="card-footer p-4 pt-0 border-top-0 bg-transparent">
             <div class="product-quantity-stepper" data-product-id="${p.id}">
               <label class="form-label small text-muted mb-1">Cantidad</label>
@@ -96,8 +94,7 @@
                 Agregar al carrito
               </button>
             </div>
-          </div>`
-      : '';
+          </div>`;
 
     return `
       <div class="col mb-5" data-product-id="${p.id}">
@@ -124,7 +121,7 @@
   }
 
   function wireAddToCart(container, productos) {
-    if (!container || !window.TiendaCarrito || !puedeComprarTienda()) return;
+    if (!container || !window.TiendaCarrito) return;
 
     container.querySelectorAll('.product-quantity-stepper').forEach(stepper => {
       const col = stepper.closest('.col.mb-5');

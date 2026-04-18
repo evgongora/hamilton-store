@@ -11,20 +11,28 @@
     return window.HAMILTON_TIENDA_PUEDE_COMPRAR === true;
   }
 
+  /**
+   * El carrito vive en localStorage para cualquier visitante (demo / armar pedido).
+   * Solo rol cliente puede pagar en checkout; no vaciar el carrito al navegar sin sesión.
+   */
+  function carritoPuedePersistir() {
+    return true;
+  }
+
   window.TiendaCarrito = {
     getItems() {
       return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
     },
 
     save(items) {
-      if (!puedeComprarTienda()) return;
+      if (!carritoPuedePersistir()) return;
       localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
       this.updateBadge();
       window.dispatchEvent(new CustomEvent('carrito-changed', { detail: { items } }));
     },
 
     add(producto, cantidad) {
-      if (!puedeComprarTienda()) return;
+      if (!carritoPuedePersistir()) return;
       const qty = Math.max(1, parseInt(cantidad, 10) || 1);
       const maxStock = producto.cantidad ?? 999;
       let items = this.getItems();
@@ -43,13 +51,13 @@
     },
 
     remove(productoId) {
-      if (!puedeComprarTienda()) return;
+      if (!carritoPuedePersistir()) return;
       let items = this.getItems().filter(i => i.productoId !== productoId);
       this.save(items);
     },
 
     setQty(productoId, cantidad) {
-      if (!puedeComprarTienda()) return;
+      if (!carritoPuedePersistir()) return;
       let items = this.getItems();
       const item = items.find(i => i.productoId === productoId);
       if (!item) return;
@@ -63,13 +71,11 @@
     },
 
     clear() {
-      if (!puedeComprarTienda()) {
-        try {
-          localStorage.removeItem(STORAGE_KEY);
-        } catch (e) {}
-        return;
-      }
-      this.save([]);
+      try {
+        localStorage.removeItem(STORAGE_KEY);
+      } catch (e) {}
+      this.updateBadge();
+      window.dispatchEvent(new CustomEvent('carrito-changed', { detail: { items: [] } }));
     },
 
     getCount() {
@@ -87,11 +93,6 @@
   };
 
   document.addEventListener('DOMContentLoaded', function () {
-    if (!puedeComprarTienda()) {
-      try {
-        localStorage.removeItem(STORAGE_KEY);
-      } catch (e) {}
-    }
     window.TiendaCarrito.updateBadge();
   });
 })();

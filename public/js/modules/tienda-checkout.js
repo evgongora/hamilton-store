@@ -118,10 +118,14 @@
 
   function getClienteActual() {
     const s = window.HAMILTON_CHECKOUT_CLIENTE;
-    if (s && typeof s.id === 'number') {
-      return s;
+    if (!s || s.id == null || s.id === '') {
+      return null;
     }
-    return null;
+    const id = typeof s.id === 'number' ? s.id : parseInt(String(s.id), 10);
+    if (!id || Number.isNaN(id)) {
+      return null;
+    }
+    return { id: id, nombre: s.nombre, apellido: s.apellido };
   }
 
   function procesarPago() {

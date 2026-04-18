@@ -37,13 +37,11 @@ function MostrarNavbar() {
                     <input class="form-control" id="productSearchInput" type="search" placeholder="Buscar productos" aria-label="Buscar productos" />
                 </form>
                 <div class="navbar-right-actions">' .
-                    ((($_SESSION['role'] ?? '') === 'cliente')
-                        ? '<a class="btn btn-outline-dark navbar-cart-form" href="' . $base . '/pages/tienda/checkout.php">
+                    '<a class="btn btn-outline-dark navbar-cart-form" href="' . $base . '/pages/tienda/checkout.php" title="Carrito (iniciá sesión como cliente para pagar)">
                         <i class="bi-cart-fill me-1"></i>
                         Carrito
                         <span id="cartBadge" class="badge bg-dark text-white ms-1 rounded-pill">0</span>
-                    </a>'
-                        : '') .
+                    </a>' .
                     (empty($_SESSION['user'])
                         ? '<a class="btn btn-outline-dark btn-sm me-2" href="' . $base . '/pages/auth/registro_cliente.php"><i class="bi bi-person-plus me-1"></i>Crear cuenta</a>'
                         . '<a class="btn btn-dark navbar-login-btn" href="' . $base . '/pages/auth/login.php"><i class="bi bi-box-arrow-in-right me-1"></i>Iniciar sesión</a>'
@@ -80,7 +78,7 @@ function MostrarJS() {
     <script src="' . $base . '/js/ui-dialog.js"></script>
     <script src="' . $base . '/js/services/api.js"></script>
     <script src="' . $base . '/js/modules/tienda-carrito.js"></script>
-    <script src="' . $base . '/js/modules/tienda-productos.js?v=5"></script>
+    <script src="' . $base . '/js/modules/tienda-productos.js?v=6"></script>
     <script src="' . $base . '/js/scripts.js"></script>';
 }
 ?>

@@ -16,33 +16,33 @@ if (($_SESSION['role'] ?? '') !== 'cliente' || empty($_SESSION['cliente_id'])) {
     exit;
 }
 
-$checkoutClienteSession = null;
-if (($_SESSION['role'] ?? '') === 'cliente' && !empty($_SESSION['cliente_id'])) {
-    require_once __DIR__ . '/../../../backend/config/db.php';
-    $conn = hamilton_db();
-    if ($conn) {
-        $cid = (int) $_SESSION['cliente_id'];
-        $sql = 'SELECT nombre, apellido FROM clientes WHERE id_cliente = :id';
-        $st = oci_parse($conn, $sql);
-        if ($st) {
-            oci_bind_by_name($st, ':id', $cid);
-            if (@oci_execute($st)) {
-                $row = oci_fetch_assoc($st);
-                if ($row !== false) {
-                    $row = array_change_key_case($row, CASE_LOWER);
-                    $checkoutClienteSession = [
-                        'id'       => $cid,
-                        'nombre'   => (string) ($row['nombre'] ?? ''),
-                        'apellido' => (string) ($row['apellido'] ?? ''),
-                    ];
-                }
+$cid = (int) $_SESSION['cliente_id'];
+/** Siempre enviar id a JS: el pago usa Oracle aunque falle el SELECT de nombre. */
+$checkoutClienteSession = [
+    'id'       => $cid,
+    'nombre'   => '',
+    'apellido' => '',
+];
+require_once __DIR__ . '/../../../backend/config/db.php';
+$conn = hamilton_db();
+if ($conn) {
+    $sql = 'SELECT nombre, apellido FROM clientes WHERE id_cliente = :id';
+    $st = oci_parse($conn, $sql);
+    if ($st) {
+        oci_bind_by_name($st, ':id', $cid);
+        if (@oci_execute($st)) {
+            $row = oci_fetch_assoc($st);
+            if ($row !== false) {
+                $row = array_change_key_case($row, CASE_LOWER);
+                $checkoutClienteSession['nombre'] = (string) ($row['nombre'] ?? '');
+                $checkoutClienteSession['apellido'] = (string) ($row['apellido'] ?? '');
             }
-            oci_free_statement($st);
         }
+        oci_free_statement($st);
     }
 }
 
-include_once $_SERVER['DOCUMENT_ROOT'] . '/hamilton-store/public/components/layout_tienda.php';
+require_once __DIR__ . '/../../components/layout_tienda.php';
 ?>
 <!DOCTYPE html>
 <html lang="es">
