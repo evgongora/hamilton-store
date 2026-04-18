@@ -1,31 +1,28 @@
 <?php
 /**
- * GET — Métodos de pago (catálogo).
+ * GET — Métodos de pago vía M_HAMILTON_STORE.pkg_metodos_pago.sp_listar_metodos_pago (REF CURSOR).
  */
 declare(strict_types=1);
 
 require_once __DIR__ . '/../config/api_helpers.php';
 
-api_require_staff_session();
+api_require_staff_or_cliente_tienda();
 api_require_method('GET');
 $conn = api_require_oracle();
 
-$sql = 'SELECT id_metodo_pago, nombre FROM metodos_pago ORDER BY id_metodo_pago';
-$st = oci_parse($conn, $sql);
-if (!$st || !oci_execute($st)) {
-    $e = oci_error($st ?: $conn);
-    api_json_response(['ok' => false, 'error' => $e['message'] ?? 'Error'], 500);
+$sql = 'BEGIN M_HAMILTON_STORE.pkg_metodos_pago.sp_listar_metodos_pago(:cur); END;';
+$out = api_oci_ref_cursor_fetch_all($conn, $sql, ':cur');
+if ($out['error'] !== null) {
+    api_json_response(['ok' => false, 'error' => $out['error']], 500);
     exit;
 }
 
 $rows = [];
-while ($row = oci_fetch_assoc($st)) {
-    $row = array_change_key_case($row, CASE_LOWER);
+foreach ($out['rows'] as $row) {
     $rows[] = [
-        'id'     => (int) $row['id_metodo_pago'],
-        'nombre' => $row['nombre'],
+        'id'     => (int) ($row['id_metodo_pago'] ?? 0),
+        'nombre' => (string) ($row['nombre'] ?? ''),
     ];
 }
-oci_free_statement($st);
 
 api_json_response(['ok' => true, 'data' => $rows]);

@@ -23,7 +23,10 @@ $role = $_SESSION['role'] ?? '';
         <?php include __DIR__ . '/../../components/sidebar.php'; ?>
         <main class="app-content">
             <h1 class="mb-2">Reportes</h1>
-            <p class="text-muted mb-4">Ventas y cobros registrados en el sistema (Oracle). Si la API no está disponible, se intentan datos locales de demostración.</p>
+            <p class="text-muted small mb-4">
+                Ventas y cobros desde Oracle (<code>ventas_list.php</code>; registros en
+                <code>pkg_encabezados_ventas</code>, <code>pkg_detalles_ventas</code> y <code>pkg_pagos</code>).
+            </p>
 
             <div class="card shadow-sm border-0 mb-4">
                 <div class="card-body">

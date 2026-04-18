@@ -30,6 +30,10 @@ require_once __DIR__ . '/../../components/layout_tienda.php';
                     <h1 class="display-4 fw-bolder">Bienvenido a M. Hamilton Store</h1>
                     <p class="lead fw-normal text-white-50 mb-0">La tienda perfecta para tus compras de electr&oacute;nicos</p>
                     <?php if (!$loggedIn): ?>
+                    <p class="text-white-50 small mt-3 mb-0 mx-auto" style="max-width: 32rem;">
+                        Para agregar productos al carrito y pagar necesit&aacute;s una <strong>cuenta de cliente</strong>.
+                        Si no ten&eacute;s una, creala aqu&iacute; abajo y luego inici&aacute; sesi&oacute;n.
+                    </p>
                     <div class="d-flex flex-wrap justify-content-center gap-3 mt-4">
                         <a class="btn btn-light btn-lg px-4 shadow-sm" href="<?php echo htmlspecialchars($loginUrl); ?>">
                             <i class="bi bi-box-arrow-in-right me-2"></i>Iniciar sesi&oacute;n

@@ -20,7 +20,10 @@ $role = $_SESSION['role'] ?? '';
     <div class="app-main">
         <?php include __DIR__ . '/../../components/sidebar.php'; ?>
         <main class="app-content">
-            <h1 class="mb-4">Registrar compra</h1>
+            <h1 class="mb-2">Registrar compra</h1>
+            <p class="text-muted small mb-4">
+                Compras registradas desde Oracle (<code>pkg_encabezados_compras</code>, <code>pkg_detalles_compras</code>).
+            </p>
 
             <div class="row g-4">
                 <div class="col-lg-7">
@@ -97,6 +100,7 @@ $role = $_SESSION['role'] ?? '';
     <?php include __DIR__ . '/../../components/footer.php'; ?>
     <?php include __DIR__ . '/../../components/scripts_bootstrap.php'; ?>
     <script src="<?php echo htmlspecialchars($basePath); ?>/js/services/api.js"></script>
+    <script src="<?php echo htmlspecialchars($basePath); ?>/js/utils/validation-helpers.js"></script>
     <script src="<?php echo htmlspecialchars($basePath); ?>/js/app.js"></script>
     <script src="<?php echo htmlspecialchars($basePath); ?>/js/modules/compras.js"></script>
 </body>

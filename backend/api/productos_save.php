@@ -22,11 +22,35 @@ $action = isset($body['action']) ? strtolower(trim((string) $body['action'])) : 
 
 if ($action === 'insert') {
     $nombre = trim((string) ($body['nombre'] ?? ''));
-    $precioCompra = isset($body['precioCompra']) ? (float) $body['precioCompra'] : null;
-    $precioVenta = isset($body['precioVenta']) ? (float) $body['precioVenta'] : null;
+    $precioCompra = isset($body['precioCompra']) ? $body['precioCompra'] : null;
+    $precioVenta = isset($body['precioVenta']) ? $body['precioVenta'] : null;
     $cantidad = isset($body['cantidad']) ? (int) $body['cantidad'] : null;
     $idCat = isset($body['idCategoria']) ? (int) $body['idCategoria'] : 0;
     $idEst = isset($body['idEstado']) ? (int) $body['idEstado'] : 0;
+
+    if (!hamilton_producto_nombre_valido($nombre)) {
+        api_json_response(['ok' => false, 'error' => 'Nombre de producto obligatorio (máx. 200 caracteres).'], 400);
+        exit;
+    }
+    if (!hamilton_precio_no_negativo_valido($precioCompra) || !hamilton_precio_no_negativo_valido($precioVenta)) {
+        api_json_response(['ok' => false, 'error' => 'Precio de compra y precio de venta deben ser números mayores o iguales a cero.'], 400);
+        exit;
+    }
+    if ($cantidad === null || $cantidad < 0) {
+        api_json_response(['ok' => false, 'error' => 'La cantidad inicial debe ser un entero mayor o igual a cero.'], 400);
+        exit;
+    }
+    if ($idCat <= 0 || !hamilton_categoria_existe($conn, $idCat)) {
+        api_json_response(['ok' => false, 'error' => 'Categoría inválida.'], 400);
+        exit;
+    }
+    if ($idEst <= 0 || !hamilton_estado_id_existe($conn, $idEst)) {
+        api_json_response(['ok' => false, 'error' => 'Estado inválido.'], 400);
+        exit;
+    }
+
+    $precioCompra = (float) $precioCompra;
+    $precioVenta = (float) $precioVenta;
 
     $sql = 'BEGIN M_HAMILTON_STORE.pkg_productos.sp_insertar_producto(
         :nombre, :precio_compra, :precio_venta, :cantidad, :id_cat, :id_est
@@ -56,11 +80,39 @@ if ($action === 'insert') {
 if ($action === 'update') {
     $id = isset($body['id']) ? (int) $body['id'] : 0;
     $nombre = trim((string) ($body['nombre'] ?? ''));
-    $precioCompra = isset($body['precioCompra']) ? (float) $body['precioCompra'] : null;
-    $precioVenta = isset($body['precioVenta']) ? (float) $body['precioVenta'] : null;
+    $precioCompra = isset($body['precioCompra']) ? $body['precioCompra'] : null;
+    $precioVenta = isset($body['precioVenta']) ? $body['precioVenta'] : null;
     $cantidad = isset($body['cantidad']) ? (int) $body['cantidad'] : null;
     $idCat = isset($body['idCategoria']) ? (int) $body['idCategoria'] : 0;
     $idEst = isset($body['idEstado']) ? (int) $body['idEstado'] : 0;
+
+    if ($id <= 0) {
+        api_json_response(['ok' => false, 'error' => 'id de producto inválido.'], 400);
+        exit;
+    }
+    if (!hamilton_producto_nombre_valido($nombre)) {
+        api_json_response(['ok' => false, 'error' => 'Nombre de producto obligatorio (máx. 200 caracteres).'], 400);
+        exit;
+    }
+    if (!hamilton_precio_no_negativo_valido($precioCompra) || !hamilton_precio_no_negativo_valido($precioVenta)) {
+        api_json_response(['ok' => false, 'error' => 'Precio de compra y precio de venta deben ser números mayores o iguales a cero.'], 400);
+        exit;
+    }
+    if ($cantidad === null || $cantidad < 0) {
+        api_json_response(['ok' => false, 'error' => 'La cantidad debe ser un entero mayor o igual a cero.'], 400);
+        exit;
+    }
+    if ($idCat <= 0 || !hamilton_categoria_existe($conn, $idCat)) {
+        api_json_response(['ok' => false, 'error' => 'Categoría inválida.'], 400);
+        exit;
+    }
+    if ($idEst <= 0 || !hamilton_estado_id_existe($conn, $idEst)) {
+        api_json_response(['ok' => false, 'error' => 'Estado inválido.'], 400);
+        exit;
+    }
+
+    $precioCompra = (float) $precioCompra;
+    $precioVenta = (float) $precioVenta;
 
     $sql = 'BEGIN M_HAMILTON_STORE.pkg_productos.sp_actualizar_producto(
         :id, :nombre, :precio_compra, :precio_venta, :cantidad, :id_cat, :id_est
@@ -90,6 +142,10 @@ if ($action === 'update') {
 
 if ($action === 'delete') {
     $id = isset($body['id']) ? (int) $body['id'] : 0;
+    if ($id <= 0) {
+        api_json_response(['ok' => false, 'error' => 'id de producto inválido.'], 400);
+        exit;
+    }
     $sql = 'BEGIN M_HAMILTON_STORE.pkg_productos.sp_eliminar_producto(:id); END;';
     $st = oci_parse($conn, $sql);
     if (!$st) {

@@ -1,9 +1,16 @@
 /**
- * ubicaciones.js - CRUD provincias, cantones, distritos
- * localStorage hamilton_ubicaciones, seed desde ubicaciones.json
+ * ubicaciones.js — Provincias, cantones y distritos vía Oracle (pkg_provincias, pkg_cantones, pkg_distritos).
  */
 (function () {
   'use strict';
+
+  function uiAlert(msg, title) {
+    if (window.UiDialog && window.UiDialog.alert) {
+      return window.UiDialog.alert(String(msg), { title: title || 'Ubicaciones' });
+    }
+    alert(msg);
+    return Promise.resolve();
+  }
 
   function uiConfirm(msg, title) {
     if (window.UiDialog && window.UiDialog.confirm) {
@@ -12,29 +19,17 @@
     return Promise.resolve(confirm(msg));
   }
 
-  const STORAGE_KEY = 'hamilton_ubicaciones';
-  const basePath = (document.body.dataset.basePath || '/hamilton-store/public').replace(/\/$/, '');
-
-  let data = { provincias: [], cantones: [], distritos: [] };
-
-  function fetchJson(path) {
-    return fetch(basePath + path).then(r => (r.ok ? r.json() : Promise.reject()));
+  if (!window.Api || !window.Api.get || !window.Api.post) {
+    document.addEventListener('DOMContentLoaded', function () {
+      uiAlert('Falta cargar api.js (API_BASE).', 'Ubicaciones');
+    });
+    return;
   }
 
-  function getData() {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) try { return JSON.parse(stored); } catch (e) {}
-    return null;
-  }
-
-  function saveData() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    renderAll();
-    window.dispatchEvent(new CustomEvent('ubicaciones-changed', { detail: data }));
-  }
+  var data = { provincias: [], cantones: [], distritos: [] };
 
   function escapeHtml(s) {
-    const div = document.createElement('div');
+    var div = document.createElement('div');
     div.textContent = s == null ? '' : String(s);
     return div.innerHTML;
   }
@@ -46,161 +41,350 @@
   }
 
   function renderProvincias() {
-    const tbody = document.getElementById('provinciasBody');
+    var tbody = document.getElementById('provinciasBody');
+    if (!tbody) return;
     tbody.innerHTML = '';
-    data.provincias.forEach(p => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${p.id}</td><td>${escapeHtml(p.nombre)}</td><td class="text-end"><button class="btn btn-outline-primary btn-sm me-1 btn-edit-prov" data-id="${p.id}"><i class="bi bi-pencil"></i></button><button class="btn btn-outline-danger btn-sm btn-del-prov" data-id="${p.id}"><i class="bi bi-trash"></i></button></td>`;
+    data.provincias.forEach(function (p) {
+      var tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td>' +
+        p.id +
+        '</td><td>' +
+        escapeHtml(p.nombre) +
+        '</td><td class="text-end"><button type="button" class="btn btn-outline-primary btn-sm me-1 btn-edit-prov" data-id="' +
+        p.id +
+        '"><i class="bi bi-pencil"></i></button><button type="button" class="btn btn-outline-danger btn-sm btn-del-prov" data-id="' +
+        p.id +
+        '"><i class="bi bi-trash"></i></button></td>';
       tbody.appendChild(tr);
     });
-    tbody.querySelectorAll('.btn-edit-prov').forEach(b => b.addEventListener('click', () => editarProvincia(parseInt(b.dataset.id, 10))));
-    tbody.querySelectorAll('.btn-del-prov').forEach(b => b.addEventListener('click', () => eliminarProvincia(parseInt(b.dataset.id, 10))));
+    tbody.querySelectorAll('.btn-edit-prov').forEach(function (b) {
+      b.addEventListener('click', function () {
+        editarProvincia(parseInt(b.getAttribute('data-id'), 10));
+      });
+    });
+    tbody.querySelectorAll('.btn-del-prov').forEach(function (b) {
+      b.addEventListener('click', function () {
+        eliminarProvincia(parseInt(b.getAttribute('data-id'), 10));
+      });
+    });
   }
 
   function renderCantones() {
-    const tbody = document.getElementById('cantonesBody');
+    var tbody = document.getElementById('cantonesBody');
+    if (!tbody) return;
     tbody.innerHTML = '';
-    data.cantones.forEach(c => {
-      const prov = data.provincias.find(p => p.id === c.provinciasIdProvincia);
-      const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${c.id}</td><td>${escapeHtml(c.nombre)}</td><td>${escapeHtml(prov?.nombre)}</td><td class="text-end"><button class="btn btn-outline-primary btn-sm me-1 btn-edit-cant" data-id="${c.id}"><i class="bi bi-pencil"></i></button><button class="btn btn-outline-danger btn-sm btn-del-cant" data-id="${c.id}"><i class="bi bi-trash"></i></button></td>`;
+    data.cantones.forEach(function (c) {
+      var prov = data.provincias.find(function (p) {
+        return p.id === c.provinciasIdProvincia;
+      });
+      var tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td>' +
+        c.id +
+        '</td><td>' +
+        escapeHtml(c.nombre) +
+        '</td><td>' +
+        escapeHtml(prov ? prov.nombre : '') +
+        '</td><td class="text-end"><button type="button" class="btn btn-outline-primary btn-sm me-1 btn-edit-cant" data-id="' +
+        c.id +
+        '"><i class="bi bi-pencil"></i></button><button type="button" class="btn btn-outline-danger btn-sm btn-del-cant" data-id="' +
+        c.id +
+        '"><i class="bi bi-trash"></i></button></td>';
       tbody.appendChild(tr);
     });
-    tbody.querySelectorAll('.btn-edit-cant').forEach(b => b.addEventListener('click', () => editarCanton(parseInt(b.dataset.id, 10))));
-    tbody.querySelectorAll('.btn-del-cant').forEach(b => b.addEventListener('click', () => eliminarCanton(parseInt(b.dataset.id, 10))));
+    tbody.querySelectorAll('.btn-edit-cant').forEach(function (b) {
+      b.addEventListener('click', function () {
+        editarCanton(parseInt(b.getAttribute('data-id'), 10));
+      });
+    });
+    tbody.querySelectorAll('.btn-del-cant').forEach(function (b) {
+      b.addEventListener('click', function () {
+        eliminarCanton(parseInt(b.getAttribute('data-id'), 10));
+      });
+    });
   }
 
   function renderDistritos() {
-    const tbody = document.getElementById('distritosBody');
+    var tbody = document.getElementById('distritosBody');
+    if (!tbody) return;
     tbody.innerHTML = '';
-    data.distritos.forEach(d => {
-      const cant = data.cantones.find(c => c.id === d.cantonesIdCanton);
-      const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${d.id}</td><td>${escapeHtml(d.nombre)}</td><td>${escapeHtml(cant?.nombre)}</td><td>${escapeHtml(d.codigoPostal)}</td><td class="text-end"><button class="btn btn-outline-primary btn-sm me-1 btn-edit-dist" data-id="${d.id}"><i class="bi bi-pencil"></i></button><button class="btn btn-outline-danger btn-sm btn-del-dist" data-id="${d.id}"><i class="bi bi-trash"></i></button></td>`;
+    data.distritos.forEach(function (d) {
+      var cant = data.cantones.find(function (c) {
+        return c.id === d.cantonesIdCanton;
+      });
+      var tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td>' +
+        d.id +
+        '</td><td>' +
+        escapeHtml(d.nombre) +
+        '</td><td>' +
+        escapeHtml(cant ? cant.nombre : '') +
+        '</td><td>' +
+        escapeHtml(d.codigoPostal != null ? d.codigoPostal : '') +
+        '</td><td class="text-end"><button type="button" class="btn btn-outline-primary btn-sm me-1 btn-edit-dist" data-id="' +
+        d.id +
+        '"><i class="bi bi-pencil"></i></button><button type="button" class="btn btn-outline-danger btn-sm btn-del-dist" data-id="' +
+        d.id +
+        '"><i class="bi bi-trash"></i></button></td>';
       tbody.appendChild(tr);
     });
-    tbody.querySelectorAll('.btn-edit-dist').forEach(b => b.addEventListener('click', () => editarDistrito(parseInt(b.dataset.id, 10))));
-    tbody.querySelectorAll('.btn-del-dist').forEach(b => b.addEventListener('click', () => eliminarDistrito(parseInt(b.dataset.id, 10))));
+    tbody.querySelectorAll('.btn-edit-dist').forEach(function (b) {
+      b.addEventListener('click', function () {
+        editarDistrito(parseInt(b.getAttribute('data-id'), 10));
+      });
+    });
+    tbody.querySelectorAll('.btn-del-dist').forEach(function (b) {
+      b.addEventListener('click', function () {
+        eliminarDistrito(parseInt(b.getAttribute('data-id'), 10));
+      });
+    });
   }
 
-  function nextId(arr) { return Math.max(0, ...arr.map(x => x.id || 0)) + 1; }
+  function reloadAll() {
+    return Promise.all([
+      window.Api.get('/provincias_list.php'),
+      window.Api.get('/cantones_list.php'),
+      window.Api.get('/distritos_list.php'),
+    ])
+      .then(function (results) {
+        data.provincias = (results[0].data || []).map(function (r) {
+          return { id: r.id, nombre: r.nombre };
+        });
+        data.cantones = (results[1].data || []).map(function (r) {
+          return { id: r.id, nombre: r.nombre, provinciasIdProvincia: r.idProvincia };
+        });
+        data.distritos = (results[2].data || []).map(function (r) {
+          return {
+            id: r.id,
+            nombre: r.nombre,
+            cantonesIdCanton: r.idCanton,
+            codigoPostal: r.codigoPostal,
+          };
+        });
+        renderAll();
+      })
+      .catch(function (e) {
+        return uiAlert(e.message || 'No se pudieron cargar las ubicaciones', 'Ubicaciones');
+      });
+  }
 
   function abrirProvincia(id) {
     document.getElementById('provinciaId').value = id || '';
-    document.getElementById('provinciaNombre').value = id ? (data.provincias.find(p => p.id === id)?.nombre || '') : '';
+    var pEdit = id
+      ? data.provincias.find(function (p) {
+          return p.id === id;
+        })
+      : null;
+    document.getElementById('provinciaNombre').value = pEdit ? pEdit.nombre : '';
     new bootstrap.Modal(document.getElementById('modalProvincia')).show();
   }
+
   function guardarProvincia() {
-    const id = document.getElementById('provinciaId').value ? parseInt(document.getElementById('provinciaId').value, 10) : null;
-    const nombre = document.getElementById('provinciaNombre').value.trim();
-    if (!nombre) return;
-    if (id) {
-      const p = data.provincias.find(x => x.id === id);
-      if (p) p.nombre = nombre;
-    } else data.provincias.push({ id: nextId(data.provincias), nombre });
-    saveData();
-    bootstrap.Modal.getInstance(document.getElementById('modalProvincia')).hide();
+    var idVal = document.getElementById('provinciaId').value;
+    var id = idVal ? parseInt(idVal, 10) : null;
+    var nombre = document.getElementById('provinciaNombre').value;
+    var V = window.HamiltonValidation;
+    var err =
+      V && V.textoLibreMensaje ? V.textoLibreMensaje(nombre, 100, false, 'Nombre') : !nombre.trim() ? 'Indique el nombre.' : null;
+    if (err) {
+      void uiAlert(err);
+      return;
+    }
+    nombre = nombre.trim();
+    var payload = id ? { action: 'update', id: id, nombre: nombre } : { action: 'insert', nombre: nombre };
+    window.Api.post('/provincias_save.php', payload).then(function () {
+      bootstrap.Modal.getInstance(document.getElementById('modalProvincia')).hide();
+      return reloadAll();
+    }).catch(function (e) {
+      uiAlert(e.message || 'Error al guardar');
+    });
   }
-  function editarProvincia(id) { abrirProvincia(id); }
+
+  function editarProvincia(id) {
+    abrirProvincia(id);
+  }
+
   function eliminarProvincia(id) {
-    uiConfirm('¿Eliminar? Se eliminarán cantones y distritos asociados.', 'Eliminar provincia').then(function (ok) {
+    uiConfirm(
+      '¿Eliminar provincia? Puede fallar si existen cantones o datos asociados en Oracle.',
+      'Eliminar provincia'
+    ).then(function (ok) {
       if (!ok) return;
-    const removedCantonIds = data.cantones.filter(c => c.provinciasIdProvincia === id).map(c => c.id);
-    data.cantones = data.cantones.filter(c => c.provinciasIdProvincia !== id);
-    data.distritos = data.distritos.filter(d => !removedCantonIds.includes(d.cantonesIdCanton));
-    data.provincias = data.provincias.filter(p => p.id !== id);
-    saveData();
+      window.Api.post('/provincias_save.php', { action: 'delete', id: id }).then(function () {
+        return reloadAll();
+      }).catch(function (e) {
+        uiAlert(e.message || 'No se pudo eliminar');
+      });
     });
   }
 
   function llenarProvinciasSelect(sel) {
     sel.innerHTML = '<option value="">-- Provincia --</option>';
-    data.provincias.forEach(p => { const o = document.createElement('option'); o.value = p.id; o.textContent = p.nombre; sel.appendChild(o); });
+    data.provincias.forEach(function (p) {
+      var o = document.createElement('option');
+      o.value = String(p.id);
+      o.textContent = p.nombre;
+      sel.appendChild(o);
+    });
   }
+
   function llenarCantonesSelect(sel, provId) {
     sel.innerHTML = '<option value="">-- Cantón --</option>';
-    data.cantones.filter(c => !provId || c.provinciasIdProvincia === provId).forEach(c => { const o = document.createElement('option'); o.value = c.id; o.textContent = c.nombre; sel.appendChild(o); });
+    data.cantones
+      .filter(function (c) {
+        return !provId || c.provinciasIdProvincia === provId;
+      })
+      .forEach(function (c) {
+        var o = document.createElement('option');
+        o.value = String(c.id);
+        o.textContent = c.nombre;
+        sel.appendChild(o);
+      });
   }
 
   function abrirCanton(id) {
     llenarProvinciasSelect(document.getElementById('cantonProvincia'));
     document.getElementById('cantonId').value = id || '';
     if (id) {
-      const c = data.cantones.find(x => x.id === id);
-      document.getElementById('cantonNombre').value = c?.nombre || '';
-      document.getElementById('cantonProvincia').value = c?.provinciasIdProvincia || '';
+      var c = data.cantones.find(function (x) {
+        return x.id === id;
+      });
+      document.getElementById('cantonNombre').value = c ? c.nombre : '';
+      document.getElementById('cantonProvincia').value = c ? String(c.provinciasIdProvincia) : '';
     } else document.getElementById('cantonNombre').value = '';
     new bootstrap.Modal(document.getElementById('modalCanton')).show();
   }
+
   function guardarCanton() {
-    const id = document.getElementById('cantonId').value ? parseInt(document.getElementById('cantonId').value, 10) : null;
-    const nombre = document.getElementById('cantonNombre').value.trim();
-    const provId = parseInt(document.getElementById('cantonProvincia').value, 10);
-    if (!nombre || !provId) return;
-    if (id) { const c = data.cantones.find(x => x.id === id); if (c) { c.nombre = nombre; c.provinciasIdProvincia = provId; } }
-    else data.cantones.push({ id: nextId(data.cantones), nombre, provinciasIdProvincia: provId });
-    saveData();
-    bootstrap.Modal.getInstance(document.getElementById('modalCanton')).hide();
+    var idVal = document.getElementById('cantonId').value;
+    var id = idVal ? parseInt(idVal, 10) : null;
+    var nombre = document.getElementById('cantonNombre').value;
+    var provId = parseInt(document.getElementById('cantonProvincia').value, 10);
+    var Vc = window.HamiltonValidation;
+    var errC =
+      Vc && Vc.textoLibreMensaje ? Vc.textoLibreMensaje(nombre, 100, false, 'Nombre') : !nombre.trim() ? 'Indique el nombre.' : null;
+    if (errC) {
+      void uiAlert(errC);
+      return;
+    }
+    nombre = nombre.trim();
+    if (!provId) {
+      void uiAlert('Seleccione una provincia.');
+      return;
+    }
+    var payload = id
+      ? { action: 'update', id: id, nombre: nombre, idProvincia: provId }
+      : { action: 'insert', nombre: nombre, idProvincia: provId };
+    window.Api.post('/cantones_save.php', payload).then(function () {
+      bootstrap.Modal.getInstance(document.getElementById('modalCanton')).hide();
+      return reloadAll();
+    }).catch(function (e) {
+      uiAlert(e.message || 'Error al guardar');
+    });
   }
-  function editarCanton(id) { abrirCanton(id); }
+
+  function editarCanton(id) {
+    abrirCanton(id);
+  }
+
   function eliminarCanton(id) {
-    uiConfirm('¿Eliminar cantón y sus distritos?', 'Eliminar cantón').then(function (ok) {
+    uiConfirm('¿Eliminar cantón? Puede fallar si hay distritos u otras referencias.', 'Eliminar cantón').then(function (ok) {
       if (!ok) return;
-    data.distritos = data.distritos.filter(d => d.cantonesIdCanton !== id);
-    data.cantones = data.cantones.filter(c => c.id !== id);
-    saveData();
+      window.Api.post('/cantones_save.php', { action: 'delete', id: id }).then(function () {
+        return reloadAll();
+      }).catch(function (e) {
+        uiAlert(e.message || 'No se pudo eliminar');
+      });
     });
   }
 
   function abrirDistrito(id) {
-    const cantonSel = document.getElementById('distritoCanton');
+    var cantonSel = document.getElementById('distritoCanton');
     llenarCantonesSelect(cantonSel);
     document.getElementById('distritoId').value = id || '';
     if (id) {
-      const d = data.distritos.find(x => x.id === id);
-      document.getElementById('distritoNombre').value = d?.nombre || '';
-      document.getElementById('distritoCanton').value = d?.cantonesIdCanton || '';
-      document.getElementById('distritoCodigoPostal').value = d?.codigoPostal || '';
-    } else { document.getElementById('distritoNombre').value = ''; document.getElementById('distritoCanton').value = ''; document.getElementById('distritoCodigoPostal').value = ''; }
+      var d = data.distritos.find(function (x) {
+        return x.id === id;
+      });
+      document.getElementById('distritoNombre').value = d ? d.nombre : '';
+      document.getElementById('distritoCanton').value = d ? String(d.cantonesIdCanton) : '';
+      document.getElementById('distritoCodigoPostal').value =
+        d && d.codigoPostal != null ? String(d.codigoPostal) : '';
+    } else {
+      document.getElementById('distritoNombre').value = '';
+      document.getElementById('distritoCanton').value = '';
+      document.getElementById('distritoCodigoPostal').value = '';
+    }
     new bootstrap.Modal(document.getElementById('modalDistrito')).show();
   }
+
   function guardarDistrito() {
-    const id = document.getElementById('distritoId').value ? parseInt(document.getElementById('distritoId').value, 10) : null;
-    const nombre = document.getElementById('distritoNombre').value.trim();
-    const cantonId = parseInt(document.getElementById('distritoCanton').value, 10);
-    const cp = document.getElementById('distritoCodigoPostal').value ? parseInt(document.getElementById('distritoCodigoPostal').value, 10) : null;
-    if (!nombre || !cantonId) return;
-    if (id) { const d = data.distritos.find(x => x.id === id); if (d) { d.nombre = nombre; d.cantonesIdCanton = cantonId; d.codigoPostal = cp; } }
-    else data.distritos.push({ id: nextId(data.distritos), nombre, cantonesIdCanton: cantonId, codigoPostal: cp });
-    saveData();
-    bootstrap.Modal.getInstance(document.getElementById('modalDistrito')).hide();
+    var idVal = document.getElementById('distritoId').value;
+    var id = idVal ? parseInt(idVal, 10) : null;
+    var nombre = document.getElementById('distritoNombre').value;
+    var cantonId = parseInt(document.getElementById('distritoCanton').value, 10);
+    var cpEl = document.getElementById('distritoCodigoPostal').value;
+    var codigoPostal = cpEl === '' ? null : parseInt(cpEl, 10);
+    var Vd = window.HamiltonValidation;
+    var errD =
+      Vd && Vd.textoLibreMensaje ? Vd.textoLibreMensaje(nombre, 100, false, 'Nombre') : !nombre.trim() ? 'Indique el nombre.' : null;
+    if (errD) {
+      void uiAlert(errD);
+      return;
+    }
+    nombre = nombre.trim();
+    if (!cantonId) {
+      void uiAlert('Seleccione un cantón.');
+      return;
+    }
+    if (cpEl !== '' && (codigoPostal == null || isNaN(codigoPostal) || codigoPostal < 0)) {
+      void uiAlert('Código postal inválido (deje en blanco o use un entero ≥ 0).');
+      return;
+    }
+    var payload = id
+      ? { action: 'update', id: id, nombre: nombre, idCanton: cantonId, codigoPostal: codigoPostal }
+      : { action: 'insert', nombre: nombre, idCanton: cantonId, codigoPostal: codigoPostal };
+    window.Api.post('/distritos_save.php', payload).then(function () {
+      bootstrap.Modal.getInstance(document.getElementById('modalDistrito')).hide();
+      return reloadAll();
+    }).catch(function (e) {
+      uiAlert(e.message || 'Error al guardar');
+    });
   }
-  function editarDistrito(id) { abrirDistrito(id); }
+
+  function editarDistrito(id) {
+    abrirDistrito(id);
+  }
+
   function eliminarDistrito(id) {
     uiConfirm('¿Eliminar distrito?', 'Eliminar distrito').then(function (ok) {
       if (!ok) return;
-    data.distritos = data.distritos.filter(d => d.id !== id);
-    saveData();
+      window.Api.post('/distritos_save.php', { action: 'delete', id: id }).then(function () {
+        return reloadAll();
+      }).catch(function (e) {
+        uiAlert(e.message || 'No se pudo eliminar');
+      });
     });
   }
 
   document.addEventListener('DOMContentLoaded', function () {
-    const stored = getData();
-    if (stored && stored.provincias && stored.provincias.length > 0) {
-      data = stored;
-      renderAll();
-    } else {
-      fetchJson('/js/mocks/ubicaciones.json').then(d => {
-        data = d;
-        saveData();
-      }).catch(() => renderAll());
-    }
+    if (!document.getElementById('provinciasBody')) return;
 
-    document.getElementById('btnNuevaProvincia').addEventListener('click', () => abrirProvincia());
+    reloadAll();
+
+    document.getElementById('btnNuevaProvincia').addEventListener('click', function () {
+      abrirProvincia();
+    });
     document.getElementById('btnGuardarProvincia').addEventListener('click', guardarProvincia);
-    document.getElementById('btnNuevoCanton').addEventListener('click', () => abrirCanton());
+    document.getElementById('btnNuevoCanton').addEventListener('click', function () {
+      abrirCanton();
+    });
     document.getElementById('btnGuardarCanton').addEventListener('click', guardarCanton);
-    document.getElementById('btnNuevoDistrito').addEventListener('click', () => abrirDistrito());
+    document.getElementById('btnNuevoDistrito').addEventListener('click', function () {
+      abrirDistrito();
+    });
     document.getElementById('btnGuardarDistrito').addEventListener('click', guardarDistrito);
   });
 })();

@@ -155,7 +155,18 @@
     const email = document.getElementById('empleadoEmail').value.trim();
     const estadosIdEstado = parseInt(document.getElementById('empleadoEstado').value, 10);
 
-    if (!nombre || !apellido || !puesto || !email || !estadosIdEstado) {
+    if (!estadosIdEstado) {
+      void uiAlert('Seleccione un estado.');
+      return;
+    }
+    var V = window.HamiltonValidation;
+    if (V && typeof V.empleadoFormMensaje === 'function') {
+      var errE = V.empleadoFormMensaje(nombre, apellido, puesto, email);
+      if (errE) {
+        void uiAlert(errE);
+        return;
+      }
+    } else if (!nombre || !apellido || !puesto || !email) {
       void uiAlert('Complete los campos obligatorios.');
       return;
     }
@@ -164,7 +175,7 @@
       nombre: nombre,
       apellido: apellido,
       puesto: puesto,
-      email: email,
+      email: email.toLowerCase(),
       idEstado: estadosIdEstado,
     };
     if (id) {

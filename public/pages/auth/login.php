@@ -22,6 +22,9 @@ $logoutOk = isset($_GET['logout']) && $_GET['logout'] === '1';
 $loginNext = (isset($_GET['next']) && $_GET['next'] === 'checkout') ? 'checkout' : '';
 $loginAction = $basePath . '/../backend/api/auth_login.php';
 $registroUrl = $basePath . '/pages/auth/registro_cliente.php';
+if ($loginNext === 'checkout') {
+    $registroUrl .= (strpos($registroUrl, '?') === false ? '?' : '&') . 'next=checkout';
+}
 $tiendaUrl = $basePath . '/pages/tienda/Homepage.php';
 $logoUrl = $basePath . '/assets/img/Header-logo.png';
 ?>
@@ -135,7 +138,7 @@ $logoUrl = $basePath . '/assets/img/Header-logo.png';
                             <a href="<?php echo htmlspecialchars($registroUrl); ?>">Crear cuenta</a>
                         </p>
                         <p class="small text-muted mb-0">
-                            <i class="bi bi-info-circle me-1"></i> Personal del salón: las cuentas de empleado las crea un <strong>administrador</strong>; no uses este registro.
+                            <i class="bi bi-info-circle me-1"></i> Personal del salón: las cuentas de empleado las gestionan <strong>administrador o cajero</strong> desde el sistema; no uses este registro.
                         </p>
                     </div>
                 </div>

@@ -24,9 +24,21 @@ $fechaRaw = (string) ($body['fechaCompra'] ?? '');
 $provId = isset($body['proveedorId']) ? (int) $body['proveedorId'] : 0;
 $empleadoId = api_session_empleado_id();
 $lineas = $body['lineas'] ?? null;
+$maxLineas = 100;
+$precioMax = 1e12;
 
 if ($fechaRaw === '' || $provId <= 0 || !is_array($lineas) || count($lineas) === 0) {
     api_json_response(['ok' => false, 'error' => 'fechaCompra, proveedorId y lineas[] son obligatorios'], 400);
+    exit;
+}
+
+if (count($lineas) > $maxLineas) {
+    api_json_response(['ok' => false, 'error' => 'Demasiadas líneas en la compra (máximo ' . $maxLineas . ').'], 400);
+    exit;
+}
+
+if (!hamilton_proveedor_existe($conn, $provId)) {
+    api_json_response(['ok' => false, 'error' => 'Proveedor no válido o inexistente.'], 400);
     exit;
 }
 
@@ -36,9 +48,32 @@ foreach ($lineas as $ln) {
         api_json_response(['ok' => false, 'error' => 'Cada línea debe ser un objeto'], 400);
         exit;
     }
-    $cant = isset($ln['cantidad']) ? (float) $ln['cantidad'] : 0.0;
+    $idProd = isset($ln['productoId']) ? (int) $ln['productoId'] : 0;
+    $cant = isset($ln['cantidad']) ? (int) $ln['cantidad'] : 0;
     $pu = isset($ln['precioUnitario']) ? (float) $ln['precioUnitario'] : 0.0;
-    $total += $cant * $pu;
+    if ($idProd <= 0 || !hamilton_producto_existe($conn, $idProd)) {
+        api_json_response(['ok' => false, 'error' => 'Cada línea requiere un productoId existente.'], 400);
+        exit;
+    }
+    if ($cant <= 0) {
+        api_json_response(['ok' => false, 'error' => 'La cantidad por línea debe ser un entero mayor que cero.'], 400);
+        exit;
+    }
+    if (!is_finite($pu) || $pu < 0 || $pu > $precioMax) {
+        api_json_response(['ok' => false, 'error' => 'precioUnitario inválido en una línea de compra.'], 400);
+        exit;
+    }
+    $lineSub = $cant * $pu;
+    if (!is_finite($lineSub) || $lineSub > $precioMax) {
+        api_json_response(['ok' => false, 'error' => 'Subtotal de línea fuera de rango.'], 400);
+        exit;
+    }
+    $total += $lineSub;
+}
+
+if (!is_finite($total) || $total < 0 || $total > $precioMax) {
+    api_json_response(['ok' => false, 'error' => 'Total de compra inválido.'], 400);
+    exit;
 }
 
 $ts = strtotime($fechaRaw);
@@ -104,14 +139,9 @@ END;
 SQL;
 
 foreach ($lineas as $ln) {
-    $cant = isset($ln['cantidad']) ? (float) $ln['cantidad'] : 0.0;
+    $cant = isset($ln['cantidad']) ? (int) $ln['cantidad'] : 0;
     $pu = isset($ln['precioUnitario']) ? (float) $ln['precioUnitario'] : 0.0;
     $idProd = isset($ln['productoId']) ? (int) $ln['productoId'] : 0;
-    if ($cant <= 0 || $pu < 0 || $idProd <= 0) {
-        oci_rollback($conn);
-        api_json_response(['ok' => false, 'error' => 'Línea inválida: productoId, cantidad y precioUnitario'], 400);
-        exit;
-    }
 
     $st = oci_parse($conn, $sqlDet);
     if (!$st) {

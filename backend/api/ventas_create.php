@@ -8,41 +8,132 @@
  *   "fechaVenta": "2026-02-14",
  *   "clienteId": 1,
  *   "lineas": [
- *     { "productoId": 1, "cantidad": 2, "precioUnitario": 10000, "subtotal": 20000 }
+ *     { "productoId": 1, "cantidad": 2 }
  *   ]
+ * (precioUnitario/subtotal del cliente se ignoran: se usan precio_venta y stock de Oracle.)
  * }
+ *
+ * Cliente tienda (sesión rol cliente): clienteId se toma de la sesión; empleado por HAMILTON_TIENDA_EMPLEADO_VENTA (o 1).
  */
 declare(strict_types=1);
 
 require_once __DIR__ . '/../config/api_helpers.php';
 
-api_require_staff_session();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+$role = $_SESSION['role'] ?? '';
+$esStaff = in_array($role, ['admin', 'cajero', 'inventario', 'soporte'], true);
+$esClienteTienda = ($role === 'cliente' && !empty($_SESSION['cliente_id']));
+if (!$esStaff && !$esClienteTienda) {
+    api_json_response(['ok' => false, 'error' => 'No autorizado'], 401);
+    exit;
+}
+
 api_require_method('POST');
 $conn = api_require_oracle();
 $body = api_read_json_body();
 
 $fechaRaw = (string) ($body['fechaVenta'] ?? '');
-$clienteId = isset($body['clienteId']) ? (int) $body['clienteId'] : 0;
-$empleadoId = api_session_empleado_id();
+$clienteIdBody = isset($body['clienteId']) ? (int) $body['clienteId'] : 0;
 $lineas = $body['lineas'] ?? null;
+$maxLineas = 100;
+
+if ($esClienteTienda) {
+    $clienteId = (int) $_SESSION['cliente_id'];
+    if ($clienteIdBody > 0 && $clienteIdBody !== $clienteId) {
+        api_json_response(['ok' => false, 'error' => 'No puede crear ventas para otro cliente'], 403);
+        exit;
+    }
+    $empleadoId = hamilton_tienda_venta_empleado_default();
+} else {
+    $clienteId = $clienteIdBody;
+    $empleadoId = api_session_empleado_id();
+}
 
 if ($fechaRaw === '' || $clienteId <= 0 || !is_array($lineas) || count($lineas) === 0) {
     api_json_response(['ok' => false, 'error' => 'fechaVenta, clienteId y lineas[] son obligatorios'], 400);
     exit;
 }
 
-$total = 0.0;
-foreach ($lineas as $ln) {
+if (count($lineas) > $maxLineas) {
+    api_json_response(['ok' => false, 'error' => 'Demasiadas líneas en la venta (máximo ' . $maxLineas . ').'], 400);
+    exit;
+}
+
+if (!hamilton_cliente_existe($conn, $clienteId)) {
+    api_json_response(['ok' => false, 'error' => 'Cliente no válido o inexistente.'], 400);
+    exit;
+}
+
+$cantidadPorProducto = [];
+$idsOrden = [];
+foreach ($lineas as $idx => $ln) {
     if (!is_array($ln)) {
         api_json_response(['ok' => false, 'error' => 'Cada línea debe ser un objeto'], 400);
         exit;
     }
-    $sub = isset($ln['subtotal']) ? (float) $ln['subtotal'] : 0.0;
-    if ($sub < 0) {
-        api_json_response(['ok' => false, 'error' => 'subtotal inválido'], 400);
+    $idProd = isset($ln['productoId']) ? (int) $ln['productoId'] : 0;
+    $cant = isset($ln['cantidad']) ? (int) $ln['cantidad'] : 0;
+    if ($idProd <= 0 || $cant <= 0) {
+        api_json_response(['ok' => false, 'error' => 'Cada línea requiere productoId y cantidad enteros mayores que cero.'], 400);
+        exit;
+    }
+    if (!isset($cantidadPorProducto[$idProd])) {
+        $cantidadPorProducto[$idProd] = 0;
+        $idsOrden[] = $idProd;
+    }
+    $cantidadPorProducto[$idProd] += $cant;
+}
+
+$mapaProd = hamilton_productos_datos_venta_por_ids($conn, $idsOrden);
+foreach ($cantidadPorProducto as $idProd => $cantTotal) {
+    if (!isset($mapaProd[$idProd])) {
+        api_json_response(['ok' => false, 'error' => 'Producto no encontrado: ID ' . $idProd], 400);
+        exit;
+    }
+    $info = $mapaProd[$idProd];
+    if ($info['estado'] !== 'activo') {
+        api_json_response(['ok' => false, 'error' => 'No se puede vender el producto ID ' . $idProd . ' (no está activo).'], 400);
+        exit;
+    }
+    if (!hamilton_precio_no_negativo_valido($info['precio_venta'])) {
+        api_json_response(['ok' => false, 'error' => 'Precio de venta inválido para el producto ID ' . $idProd . '.'], 400);
+        exit;
+    }
+    if ($cantTotal > $info['cantidad']) {
+        api_json_response([
+            'ok'    => false,
+            'error' => 'Stock insuficiente para el producto ID ' . $idProd . ' (solicitado: ' . $cantTotal . ', disponible: ' . $info['cantidad'] . ').',
+        ], 400);
+        exit;
+    }
+}
+
+$lineasServidor = [];
+$total = 0.0;
+foreach ($lineas as $ln) {
+    $idProd = (int) $ln['productoId'];
+    $cant = (int) $ln['cantidad'];
+    $info = $mapaProd[$idProd];
+    $pu = (float) $info['precio_venta'];
+    $sub = round($cant * $pu, 2);
+    if (!is_finite($sub) || $sub < 0) {
+        api_json_response(['ok' => false, 'error' => 'Error al calcular subtotal de línea.'], 400);
         exit;
     }
     $total += $sub;
+    $lineasServidor[] = [
+        'productoId'       => $idProd,
+        'cantidad'         => $cant,
+        'precioUnitario'   => $pu,
+        'subtotal'         => $sub,
+    ];
+}
+
+if (!is_finite($total) || $total < 0) {
+    api_json_response(['ok' => false, 'error' => 'Total de venta inválido.'], 400);
+    exit;
 }
 
 $ts = strtotime($fechaRaw);
@@ -108,16 +199,11 @@ BEGIN
 END;
 SQL;
 
-foreach ($lineas as $ln) {
-    $cant = isset($ln['cantidad']) ? (int) $ln['cantidad'] : 0;
-    $pu = isset($ln['precioUnitario']) ? (float) $ln['precioUnitario'] : 0.0;
-    $sub = isset($ln['subtotal']) ? (float) $ln['subtotal'] : 0.0;
-    $idProd = isset($ln['productoId']) ? (int) $ln['productoId'] : 0;
-    if ($cant <= 0 || $idProd <= 0) {
-        oci_rollback($conn);
-        api_json_response(['ok' => false, 'error' => 'Cada línea requiere productoId y cantidad > 0'], 400);
-        exit;
-    }
+foreach ($lineasServidor as $ln) {
+    $cant = (int) $ln['cantidad'];
+    $pu = (float) $ln['precioUnitario'];
+    $sub = (float) $ln['subtotal'];
+    $idProd = (int) $ln['productoId'];
 
     $st = oci_parse($conn, $sqlDet);
     if (!$st) {

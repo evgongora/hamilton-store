@@ -21,7 +21,15 @@ Convención habitual: respuestas JSON con `ok`, `data` o `error`; sesión de per
 | `ventas_list.php` | GET | Ventas con totales y pagos agregados |
 | `ventas_create.php` | POST | Punto de venta (líneas) |
 | `pagos_create.php` | POST | Registrar pago sobre venta |
-| `metodos_pago_list.php` | GET | Métodos de pago |
+| `metodos_pago_list.php`, `metodos_pago_save.php` | GET / POST | Métodos de pago (`pkg_metodos_pago`) |
+| `provincias_list.php`, `provincias_save.php` | GET / POST | Provincias |
+| `cantones_list.php`, `cantones_save.php` | GET / POST | Cantones |
+| `distritos_list.php`, `distritos_save.php` | GET / POST | Distritos |
+| `direcciones_list.php`, `direcciones_save.php` | GET / POST | Direcciones cliente/proveedor |
+| `telefonos_clientes_list.php`, `telefonos_clientes_save.php` | GET / POST | Teléfonos de clientes |
+| `telefonos_cont_proveedor_list.php`, `telefonos_cont_proveedor_save.php` | GET / POST | Teléfonos de contactos de proveedor |
+| `tipo_gestion_list.php`, `tipo_gestion_save.php` | GET / POST | Tipos de gestión de stock |
+| `gestion_stock_list.php`, `gestion_stock_save.php` | GET / POST | Movimientos de gestión de stock |
 | `empleados_list.php`, `empleados_save.php` | GET / POST | Empleados |
 | `usuarios_list.php`, `usuarios_save.php` | GET / POST | Usuarios internos |
 | `roles_list.php` | GET | Roles |
@@ -38,12 +46,12 @@ Rutas base configuradas en `backend/config/paths.php` (`api` → `/hamilton-stor
 
 **Función**: métricas de ventas (suma), pagos acumulados, conteo de clientes y productos, tabla de últimas ventas.
 
-**Datos**: prioridad **API** (`ventas_list.php`, `clientes_list.php`, `productos_list.php`). Si falla la petición, **respaldo** desde `localStorage` (`hamilton_ventas`, `hamilton_clientes`) mediante `dashboard.js`.
+**Datos**: solo **API** (`ventas_list.php`, `clientes_list.php`, `productos_list.php`). Si falla la petición, la UI muestra aviso y métricas vacías o en cero.
 
 | Archivo | Rol |
 |---------|-----|
 | `public/pages/sistema/dashboard.php` | `requireRole(['admin', 'soporte'])` |
-| `public/js/modules/dashboard.js` | Carga API + fallback |
+| `public/js/modules/dashboard.js` | Carga vía API |
 
 ---
 
@@ -110,14 +118,51 @@ Rutas base configuradas en `backend/config/paths.php` (`api` → `/hamilton-stor
 
 ## Ubicaciones
 
-**Función**: CRUD provincias / cantones / distritos en el navegador.
+**Función**: CRUD provincias, cantones y distritos persistidos en Oracle.
 
-**Datos**: **`localStorage`** clave `hamilton_ubicaciones`, seed desde `public/js/mocks/ubicaciones.json`. **No** está conectado a Oracle en el front actual.
+**Datos**: `provincias_*`, `cantones_*`, `distritos_*` (`pkg_provincias`, `pkg_cantones`, `pkg_distritos`); listados vía REF CURSOR. Front: `api.js` + `ubicaciones.js`.
 
 | Archivo | Rol |
 |---------|-----|
 | `public/pages/sistema/ubicaciones.php` | `requireRole(['admin', 'soporte'])` |
-| `public/js/modules/ubicaciones.js` | Persistencia local |
+| `public/js/modules/ubicaciones.js` | `Api.get` / `Api.post` |
+
+---
+
+## Direcciones y teléfonos
+
+**Función**: direcciones (cliente o proveedor), teléfonos de clientes y teléfonos adicionales de contactos de proveedor.
+
+**Datos**: `direcciones_*`, `telefonos_clientes_*`, `telefonos_cont_proveedor_*`; contactos para el formulario desde `contactos_proveedor_list.php?proveedorId=`.
+
+| Archivo | Rol |
+|---------|-----|
+| `public/pages/sistema/datos_auxiliares.php` | `requireRole(['admin', 'soporte'])` |
+| `public/js/modules/datos_auxiliares.js` | Pestañas y modales |
+
+---
+
+## Gestión de stock (movimientos)
+
+**Función**: catálogo de tipos de gestión y registro de movimientos (`cantidad` ≠ 0, fecha, producto, tipo).
+
+**Datos**: `tipo_gestion_*`, `gestion_stock_*`, `productos_list.php`.
+
+| Archivo | Rol |
+|---------|-----|
+| `public/pages/sistema/gestion_stock.php` | `requireRole(['admin', 'soporte', 'inventario'])` |
+| `public/js/modules/gestion_stock.js` | Tablas y modales |
+
+---
+
+## Métodos de pago (catálogo)
+
+**Función**: alta, edición y baja de métodos de pago en Oracle (además del uso en **Pagos**, que solo consume el listado).
+
+| Archivo | Rol |
+|---------|-----|
+| `public/pages/sistema/metodos_pago.php` | `requireRole(['admin', 'soporte'])` |
+| `public/js/modules/metodos_pago_admin.js` | CRUD vía `metodos_pago_save.php` |
 
 ---
 
@@ -169,7 +214,7 @@ Rutas base configuradas en `backend/config/paths.php` (`api` → `/hamilton-stor
 
 **Función**: filtros por fechas, tablas de ventas y pagos.
 
-**Datos**: prioridad **`ventas_list.php`**; respaldo **`localStorage`** (`hamilton_ventas`) en `reportes.js` si la API falla.
+**Datos**: solo **`ventas_list.php`** (`reportes.js`; sin datos locales ni JSON de demostración).
 
 | Archivo | Rol |
 |---------|-----|
@@ -186,7 +231,7 @@ Rutas base configuradas en `backend/config/paths.php` (`api` → `/hamilton-stor
 2. **Registro**: `public/pages/auth/registro_cliente.php` → `auth_register_cliente.php`. La ruta `public/pages/tienda/registro.php` **redirige** al registro real.
 3. **Login**: `public/pages/auth/login.php` → `auth_login.php`; parámetro `next=checkout` para volver al checkout.
 4. **Carrito**: `localStorage` **`hamilton_tienda_carrito`** (`tienda-carrito.js`).
-5. **Checkout**: `checkout.php` exige sesión **`cliente`** y carga nombre desde Oracle. La **pasarela** sigue siendo **mock** (`tienda-checkout.js`): métodos desde `public/js/mocks/metodos_pago.json` y la “venta” se guarda en **`localStorage`** (`hamilton_ventas`), no en Oracle vía `ventas_create.php` en el flujo actual.
+5. **Checkout**: `checkout.php` exige sesión **`cliente`** y carga nombre desde Oracle. `tienda-checkout.js` usa **`metodos_pago_list.php`**, **`ventas_create.php`** y **`pagos_create.php`** (Oracle).
 
 ### Archivos clave
 
@@ -199,8 +244,7 @@ Rutas base configuradas en `backend/config/paths.php` (`api` → `/hamilton-stor
 | `public/components/layout_tienda.php` | Navbar, `API_BASE`, flags tienda |
 | `public/js/modules/tienda-productos.js` | Grid de productos |
 | `public/js/modules/tienda-carrito.js` | Carrito |
-| `public/js/modules/tienda-checkout.js` | Mock de pago y escritura local de venta |
-| `public/js/modules/auth-cliente.js` | Legado (cookie); el flujo principal es **sesión PHP** |
+| `public/js/modules/tienda-checkout.js` | Pago: API Oracle (venta + cobro) |
 
 ---
 
@@ -209,19 +253,8 @@ Rutas base configuradas en `backend/config/paths.php` (`api` → `/hamilton-stor
 | Clave / uso | Contenido |
 |-------------|-----------|
 | `hamilton_tienda_carrito` | Ítems del carrito de la tienda |
-| `hamilton_ventas` | Respaldo / demo de ventas y reportes; **checkout tienda** añade aquí en el mock |
-| `hamilton_ubicaciones` | CRUD ubicaciones (solo front) |
+| `hamilton_ubicaciones` | Obsoleto: `ubicaciones.js` ya no usa esta clave (datos en Oracle) |
 | `hamilton_empleados`, `hamilton_usuarios`, … | Posible seed o legado; operación real vía API donde esté cableado |
-
----
-
-## Mocks (`public/js/mocks/`)
-
-| Recurso | Uso actual típico |
-|---------|-------------------|
-| `metodos_pago.json` | Selector de métodos en **checkout tienda** (mock) |
-| `ubicaciones.json` | Seed inicial de ubicaciones |
-| Otros JSON | Referencia o desarrollo; el catálogo de productos del sistema y la tienda viene de **Oracle** vía API |
 
 ---
 

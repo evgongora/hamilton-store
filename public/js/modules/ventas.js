@@ -186,14 +186,21 @@
       return;
     }
 
+    const V = window.HamiltonValidation;
+    if (V && typeof V.carritoVentasLineasMensaje === 'function') {
+      const errCart = V.carritoVentasLineasMensaje(carrito);
+      if (errCart) {
+        void uiAlert(errCart, 'Punto de venta');
+        return;
+      }
+    }
+
     const clienteId = parseInt(clienteIdStr, 10);
     const fechaVenta = new Date().toISOString().slice(0, 10);
     const lineas = carrito.map(function (i) {
       return {
         productoId: i.productoId,
-        cantidad: i.cantidad,
-        precioUnitario: i.precioUnitario,
-        subtotal: i.subtotal
+        cantidad: i.cantidad
       };
     });
 

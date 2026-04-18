@@ -1,24 +1,8 @@
 /**
- * dashboard.js — Resumen con datos de la API (Oracle) y respaldo localStorage.
+ * dashboard.js — Resumen desde API Oracle únicamente.
  */
 (function () {
   'use strict';
-
-  function getVentasLocal() {
-    try {
-      return JSON.parse(localStorage.getItem('hamilton_ventas') || '[]');
-    } catch (e) {
-      return [];
-    }
-  }
-
-  function getClientesLocal() {
-    try {
-      return JSON.parse(localStorage.getItem('hamilton_clientes') || '[]');
-    } catch (e) {
-      return [];
-    }
-  }
 
   function formatMoney(n) {
     return '₡' + Number(n).toLocaleString('es-CR');
@@ -36,36 +20,6 @@
     const div = document.createElement('div');
     div.textContent = s == null ? '' : String(s);
     return div.innerHTML;
-  }
-
-  function renderLegacy() {
-    const ventas = getVentasLocal();
-    const clientes = getClientesLocal();
-    const totalVentas = ventas.reduce(function (s, v) {
-      return s + (v.total || 0);
-    }, 0);
-    const totalPagos = ventas.reduce(function (s, v) {
-      return (
-        s +
-        (v.pagos || []).reduce(function (sp, p) {
-          return sp + (p.monto || 0);
-        }, 0)
-      );
-    }, 0);
-
-    const elV = document.getElementById('dashTotalVentas');
-    const elP = document.getElementById('dashTotalPagos');
-    const elC = document.getElementById('dashClientes');
-    const elPr = document.getElementById('dashProductos');
-    if (elV) elV.textContent = formatMoney(totalVentas);
-    if (elP) elP.textContent = formatMoney(totalPagos);
-    if (elC) elC.textContent = String(clientes.length);
-    if (elPr) elPr.textContent = '—';
-
-    const ultimas = ventas.slice(-8).reverse();
-    fillVentasTable(ultimas, function (v) {
-      return v.fecha;
-    });
   }
 
   function fillVentasTable(rows, getFecha) {
@@ -100,9 +54,28 @@
     });
   }
 
+  function setMetricasVacias() {
+    const elV = document.getElementById('dashTotalVentas');
+    const elP = document.getElementById('dashTotalPagos');
+    const elC = document.getElementById('dashClientes');
+    const elPr = document.getElementById('dashProductos');
+    if (elV) elV.textContent = formatMoney(0);
+    if (elP) elP.textContent = formatMoney(0);
+    if (elC) elC.textContent = '0';
+    if (elPr) elPr.textContent = '0';
+    fillVentasTable([], function () {
+      return '';
+    });
+  }
+
   async function loadFromApi() {
     if (!window.Api) {
-      renderLegacy();
+      setMetricasVacias();
+      const note = document.getElementById('dashApiNote');
+      if (note) {
+        note.textContent = 'No hay conexión a la API (API_BASE).';
+        note.classList.remove('d-none');
+      }
       return;
     }
 
@@ -139,22 +112,22 @@
       fillVentasTable(ultimas, function (v) {
         return v.fechaVentaIso || v.fechaVenta;
       });
+
+      const note = document.getElementById('dashApiNote');
+      if (note) {
+        note.classList.add('d-none');
+        note.textContent = '';
+      }
     } catch (e) {
-      renderLegacy();
+      setMetricasVacias();
       const note = document.getElementById('dashApiNote');
       if (note) {
         note.textContent =
-          'No se pudieron cargar las métricas desde el servidor; se muestran datos locales si existen.';
+          'No se pudieron cargar las métricas desde Oracle. Revise la conexión y vuelva a intentar.';
         note.classList.remove('d-none');
       }
     }
   }
 
   document.addEventListener('DOMContentLoaded', loadFromApi);
-
-  window.addEventListener('storage', function (e) {
-    if (['hamilton_ventas', 'hamilton_clientes'].includes(e.key)) {
-      if (!window.Api) renderLegacy();
-    }
-  });
 })();

@@ -1,6 +1,5 @@
 /**
- * tienda-checkout.js - Mock pasarela de pagos para tienda
- * Estructura alineada con BD: encabezados_ventas + detalles_ventas + pagos
+ * tienda-checkout.js — Checkout tienda: métodos de pago y venta+pago en Oracle (API).
  */
 (function () {
   'use strict';
@@ -13,29 +12,44 @@
     return Promise.resolve();
   }
 
-  const STORAGE_VENTAS = 'hamilton_ventas';
-  const basePath = '/hamilton-store/public';
-
   function formatMoney(n) {
     return '₡' + Number(n).toLocaleString('es-CR');
+  }
+
+  function escapeHtml(s) {
+    const div = document.createElement('div');
+    div.textContent = s;
+    return div.innerHTML;
   }
 
   function loadMetodosPago() {
     const sel = document.getElementById('metodoPago');
     if (!sel) return Promise.resolve();
-    return fetch(basePath + '/js/mocks/metodos_pago.json')
-      .then(r => r.ok ? r.json() : [])
-      .then(data => {
+    if (!window.Api) {
+      sel.innerHTML = '<option value="">API no disponible</option>';
+      return Promise.resolve();
+    }
+    return window.Api
+      .get('/metodos_pago_list.php')
+      .then(function (json) {
+        const rows = json.data || [];
         sel.innerHTML = '';
-        data.forEach(m => {
+        if (rows.length === 0) {
+          sel.innerHTML = '<option value="">— Sin métodos —</option>';
+          return rows;
+        }
+        rows.forEach(function (m) {
           const opt = document.createElement('option');
-          opt.value = m.id;
+          opt.value = String(m.id);
           opt.textContent = m.nombre;
           sel.appendChild(opt);
         });
-        return data;
+        return rows;
       })
-      .catch(() => []);
+      .catch(function () {
+        sel.innerHTML = '<option value="">Error al cargar métodos</option>';
+        return [];
+      });
   }
 
   function render() {
@@ -63,37 +77,34 @@
     if (!tbody || !totalEl) return;
 
     tbody.innerHTML = '';
-    items.forEach(item => {
+    items.forEach(function (item) {
       const tr = document.createElement('tr');
       const subtotal = item.precioVenta * item.cantidad;
-      tr.innerHTML = `
-        <td>${escapeHtml(item.nombre)}</td>
-        <td class="text-end">${item.cantidad}</td>
-        <td class="text-end">${formatMoney(item.precioVenta)}</td>
-        <td class="text-end">${formatMoney(subtotal)}</td>
-        <td>
-          <button type="button" class="btn btn-outline-danger btn-sm remove-item" data-id="${item.productoId}">
-            <i class="bi bi-trash"></i>
-          </button>
-        </td>
-      `;
+      tr.innerHTML =
+        '<td>' +
+        escapeHtml(item.nombre) +
+        '</td><td class="text-end">' +
+        item.cantidad +
+        '</td><td class="text-end">' +
+        formatMoney(item.precioVenta) +
+        '</td><td class="text-end">' +
+        formatMoney(subtotal) +
+        '</td><td>' +
+        '<button type="button" class="btn btn-outline-danger btn-sm remove-item" data-id="' +
+        item.productoId +
+        '">' +
+        '<i class="bi bi-trash"></i></button></td>';
       tbody.appendChild(tr);
     });
 
     totalEl.textContent = formatMoney(total);
 
-    tbody.querySelectorAll('.remove-item').forEach(btn => {
+    tbody.querySelectorAll('.remove-item').forEach(function (btn) {
       btn.addEventListener('click', function () {
-        window.TiendaCarrito.remove(parseInt(this.dataset.id, 10));
+        window.TiendaCarrito.remove(parseInt(btn.getAttribute('data-id'), 10));
         render();
       });
     });
-  }
-
-  function escapeHtml(s) {
-    const div = document.createElement('div');
-    div.textContent = s;
-    return div.innerHTML;
   }
 
   function showSuccess() {
@@ -110,82 +121,101 @@
     if (s && typeof s.id === 'number') {
       return s;
     }
-    if (typeof window.AuthCliente !== 'undefined' && window.AuthCliente.getClienteActual) {
-      const c = window.AuthCliente.getClienteActual();
-      if (c) return c;
-    }
-    const m = document.cookie.match(/(^| )hamilton_cliente=([^;]+)/);
-    if (!m) return null;
-    try {
-      return JSON.parse(decodeURIComponent(m[2]));
-    } catch (e) {
-      return null;
-    }
+    return null;
   }
 
   function procesarPago() {
-    if (!window.TiendaCarrito) return;
+    if (!window.TiendaCarrito || !window.Api) {
+      void uiAlert('No se puede completar el pago. Recargue la página.');
+      return Promise.resolve();
+    }
     const items = window.TiendaCarrito.getItems();
     if (items.length === 0) {
       void uiAlert('El carrito está vacío');
-      return;
+      return Promise.resolve();
     }
 
-    const metodoPagoId = document.getElementById('metodoPago')?.value;
+    const metodoPagoId = parseInt(document.getElementById('metodoPago').value, 10);
     if (!metodoPagoId) {
       void uiAlert('Seleccione un método de pago');
-      return;
+      return Promise.resolve();
+    }
+
+    const cliente = getClienteActual();
+    if (!cliente || !cliente.id) {
+      void uiAlert('Sesión de cliente no válida. Vuelva a iniciar sesión.');
+      return Promise.resolve();
+    }
+
+    const V = window.HamiltonValidation;
+    if (V && typeof V.carritoVentasLineasMensaje === 'function') {
+      const errCart = V.carritoVentasLineasMensaje(items);
+      if (errCart) {
+        void uiAlert(errCart);
+        return Promise.resolve();
+      }
     }
 
     const total = window.TiendaCarrito.getTotal();
-    const cliente = getClienteActual();
-    const venta = {
-      id: Date.now(),
-      fecha: new Date().toISOString(),
-      total,
-      clientesIdCliente: cliente ? cliente.id : null,
-      clienteNombre: cliente ? [cliente.nombre, cliente.apellido].filter(Boolean).join(' ') : 'Cliente tienda',
-      empleadosIdEmpleado: 1,
-      origen: 'tienda',
-      items: items.map(i => ({
-        productosIdProducto: i.productoId,
-        nombre: i.nombre,
+    if (!isFinite(total) || total <= 0) {
+      void uiAlert('El total de la orden no es válido.');
+      return Promise.resolve();
+    }
+    if (V && typeof V.montoPositivo === 'function' && !V.montoPositivo(total)) {
+      void uiAlert('El total de la orden no es válido.');
+      return Promise.resolve();
+    }
+    const hoy = new Date().toISOString().slice(0, 10);
+    const lineas = items.map(function (i) {
+      return {
+        productoId: i.productoId,
         cantidad: i.cantidad,
-        precioUnitario: i.precioVenta,
-        subtotal: i.cantidad * i.precioVenta
-      })),
-      pagos: [{ monto: total, fechaPago: new Date().toISOString(), metodosPagoIdMetodoPago: parseInt(metodoPagoId, 10) }]
+      };
+    });
+
+    const bodyVenta = {
+      fechaVenta: hoy,
+      clienteId: cliente.id,
+      lineas: lineas,
     };
 
-    const ventas = JSON.parse(localStorage.getItem(STORAGE_VENTAS) || '[]');
-    ventas.push(venta);
-    localStorage.setItem(STORAGE_VENTAS, JSON.stringify(ventas));
-
-    window.TiendaCarrito.clear();
-    showSuccess();
+    return window.Api
+      .post('/ventas_create.php', bodyVenta)
+      .then(function (res) {
+        const idVenta = res.idVenta;
+        if (!idVenta) {
+          throw new Error('Respuesta sin id de venta');
+        }
+        return window.Api.post('/pagos_create.php', {
+          action: 'insert',
+          monto: total,
+          fechaPago: hoy,
+          idMetodoPago: metodoPagoId,
+          idVenta: idVenta,
+        });
+      })
+      .then(function () {
+        window.TiendaCarrito.clear();
+        showSuccess();
+      })
+      .catch(function (e) {
+        void uiAlert(e.message || 'No se pudo registrar la compra.');
+      });
   }
 
   document.addEventListener('DOMContentLoaded', function () {
-    loadMetodosPago().then(function () {
-      document.getElementById('metodoPago')?.dispatchEvent(new Event('change'));
-    });
+    loadMetodosPago().then(function () {});
     render();
-
-    document.getElementById('metodoPago')?.addEventListener('change', function () {
-      const v = parseInt(this.value, 10);
-      const tarjeta = document.getElementById('mockTarjeta');
-      if (tarjeta) tarjeta.style.display = (v === 3) ? 'block' : 'none';
-    });
 
     document.getElementById('btnPagar')?.addEventListener('click', function () {
       const btn = this;
+      const prev = btn.innerHTML;
       btn.disabled = true;
       btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Procesando...';
-      setTimeout(function () {
-        procesarPago();
+      void Promise.resolve(procesarPago()).finally(function () {
         btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-lock-fill me-2"></i>Pagar ahora';
-      }, 800);
+        btn.innerHTML = prev;
+      });
     });
 
     window.addEventListener('carrito-changed', render);

@@ -114,15 +114,17 @@ function hamilton_staff_menu_keys(?string $role = null): array
     $role = $role ?? ($_SESSION['role'] ?? '');
     $map = [
         'admin' => [
-            'dashboard', 'productos', 'inventario', 'clientes', 'ubicaciones', 'proveedores',
-            'compras', 'ventas', 'pagos', 'empleados', 'usuarios', 'reportes',
+            'dashboard', 'productos', 'inventario', 'clientes', 'ubicaciones', 'datos_auxiliares',
+            'gestion_stock', 'metodos_pago', 'proveedores', 'compras', 'ventas', 'pagos', 'empleados',
+            'usuarios', 'reportes',
         ],
         'soporte' => [
-            'dashboard', 'productos', 'inventario', 'clientes', 'ubicaciones', 'proveedores',
-            'compras', 'ventas', 'pagos', 'empleados', 'reportes',
+            'dashboard', 'productos', 'inventario', 'clientes', 'ubicaciones', 'datos_auxiliares',
+            'gestion_stock', 'metodos_pago', 'proveedores', 'compras', 'ventas', 'pagos', 'empleados',
+            'reportes',
         ],
-        'cajero' => ['clientes', 'inventario', 'ventas', 'pagos'],
-        'inventario' => ['productos', 'inventario', 'proveedores', 'compras'],
+        'cajero' => ['clientes', 'inventario', 'ventas', 'pagos', 'usuarios'],
+        'inventario' => ['productos', 'inventario', 'gestion_stock', 'proveedores', 'compras'],
     ];
 
     return $map[$role] ?? [];

@@ -21,8 +21,24 @@ if ($action === 'insert') {
     $nombre = trim((string) ($body['nombre'] ?? ''));
     $apellido = trim((string) ($body['apellido'] ?? ''));
     $puesto = trim((string) ($body['puesto'] ?? ''));
-    $email = trim((string) ($body['email'] ?? ''));
+    $email = strtolower(trim((string) ($body['email'] ?? '')));
     $idEst = isset($body['idEstado']) ? (int) $body['idEstado'] : 0;
+
+    foreach (['nombre' => $nombre, 'apellido' => $apellido, 'puesto' => $puesto] as $campo => $val) {
+        $e = hamilton_texto_libre_validar($val, 200, false);
+        if ($e !== null) {
+            api_json_response(['ok' => false, 'error' => ucfirst($campo) . ': ' . $e], 400);
+            exit;
+        }
+    }
+    if (!hamilton_cliente_email_valido_oracle($email)) {
+        api_json_response(['ok' => false, 'error' => 'Email de empleado con formato inválido.'], 400);
+        exit;
+    }
+    if ($idEst <= 0 || !hamilton_estado_id_existe($conn, $idEst)) {
+        api_json_response(['ok' => false, 'error' => 'Estado inválido.'], 400);
+        exit;
+    }
 
     $sql = 'BEGIN M_HAMILTON_STORE.pkg_empleados.sp_insertar_empleado(
         :nombre, :apellido, :puesto, :email, :id_est
@@ -53,8 +69,28 @@ if ($action === 'update') {
     $nombre = trim((string) ($body['nombre'] ?? ''));
     $apellido = trim((string) ($body['apellido'] ?? ''));
     $puesto = trim((string) ($body['puesto'] ?? ''));
-    $email = trim((string) ($body['email'] ?? ''));
+    $email = strtolower(trim((string) ($body['email'] ?? '')));
     $idEst = isset($body['idEstado']) ? (int) $body['idEstado'] : 0;
+
+    if ($id <= 0) {
+        api_json_response(['ok' => false, 'error' => 'id de empleado inválido.'], 400);
+        exit;
+    }
+    foreach (['nombre' => $nombre, 'apellido' => $apellido, 'puesto' => $puesto] as $campo => $val) {
+        $e = hamilton_texto_libre_validar($val, 200, false);
+        if ($e !== null) {
+            api_json_response(['ok' => false, 'error' => ucfirst($campo) . ': ' . $e], 400);
+            exit;
+        }
+    }
+    if (!hamilton_cliente_email_valido_oracle($email)) {
+        api_json_response(['ok' => false, 'error' => 'Email de empleado con formato inválido.'], 400);
+        exit;
+    }
+    if ($idEst <= 0 || !hamilton_estado_id_existe($conn, $idEst)) {
+        api_json_response(['ok' => false, 'error' => 'Estado inválido.'], 400);
+        exit;
+    }
 
     $sql = 'BEGIN M_HAMILTON_STORE.pkg_empleados.sp_actualizar_empleado(
         :id, :nombre, :apellido, :puesto, :email, :id_est
@@ -83,6 +119,10 @@ if ($action === 'update') {
 
 if ($action === 'delete') {
     $id = isset($body['id']) ? (int) $body['id'] : 0;
+    if ($id <= 0) {
+        api_json_response(['ok' => false, 'error' => 'id de empleado inválido.'], 400);
+        exit;
+    }
     $sql = 'BEGIN M_HAMILTON_STORE.pkg_empleados.sp_eliminar_empleado(:id); END;';
     $st = oci_parse($conn, $sql);
     if (!$st) {

@@ -1,11 +1,16 @@
 <?php
 require_once __DIR__ . '/../../../backend/config/auth_guard.php';
-requireRole(['admin']);
+requireRole(['admin', 'cajero']);
 
 $basePath = dirname(dirname(dirname($_SERVER['SCRIPT_NAME'])));
 if ($basePath === '/' || $basePath === '\\') {
     $basePath = '';
 }
+
+$usuariosJsAbs = __DIR__ . '/../../js/modules/usuarios.js';
+$usuariosJsV = is_file($usuariosJsAbs) ? (int) filemtime($usuariosJsAbs) : (int) time();
+$valHelpersAbs = __DIR__ . '/../../js/utils/validation-helpers.js';
+$valHelpersV = is_file($valHelpersAbs) ? (int) filemtime($valHelpersAbs) : (int) time();
 
 $pageTitle = 'Usuarios - M. Hamilton Store';
 $currentPage = 'usuarios';
@@ -32,7 +37,9 @@ $role = $_SESSION['role'] ?? '';
                 </div>
             </div>
             <p class="text-muted small mb-4">
-                Usuarios de personal vinculados a empleados (Oracle). Los usuarios de clientes de la tienda se listan como solo lectura.
+                Gestión de cuentas Oracle (<code>pkg_usuarios</code>). En <strong>Nuevo</strong> elija si la cuenta es
+                de personal (empleado) o de <strong>cliente tienda</strong> (rol CLIENTE y cliente sin usuario aún).
+                En cuentas cliente existentes puede cambiar usuario, contraseña y estado; el rol y el vínculo al cliente no se editan.
             </p>
 
             <div class="table-responsive shadow-sm rounded border bg-white">
@@ -41,7 +48,7 @@ $role = $_SESSION['role'] ?? '';
                         <tr>
                             <th>Usuario</th>
                             <th>Rol</th>
-                            <th>Empleado</th>
+                            <th>Empleado / Cliente</th>
                             <th>Estado</th>
                             <th class="text-end">Acciones</th>
                         </tr>
@@ -61,6 +68,18 @@ $role = $_SESSION['role'] ?? '';
                         <div class="modal-body">
                             <form id="formUsuario">
                                 <input type="hidden" id="usuarioId" value="">
+                                <div class="mb-3 d-none" id="wrapNuevoTipoCuenta">
+                                    <label for="usuarioNuevoTipo" class="form-label">Tipo de cuenta</label>
+                                    <select class="form-select" id="usuarioNuevoTipo">
+                                        <option value="personal">Personal (empleado)</option>
+                                        <option value="cliente">Cliente tienda</option>
+                                    </select>
+                                    <div class="form-text">Cliente: usuario con rol CLIENTE vinculado a una ficha de cliente sin cuenta aún.</div>
+                                </div>
+                                <div class="mb-3 d-none" id="wrapUsuarioClienteNuevoSelect">
+                                    <label for="usuarioClienteNuevo" class="form-label">Cliente (sin usuario)</label>
+                                    <select class="form-select" id="usuarioClienteNuevo"></select>
+                                </div>
                                 <div class="mb-3">
                                     <label for="usuarioUsername" class="form-label">Nombre de usuario</label>
                                     <input type="text" class="form-control" id="usuarioUsername" required maxlength="50" autocomplete="username">
@@ -73,12 +92,19 @@ $role = $_SESSION['role'] ?? '';
                                 <div class="mb-3">
                                     <label for="usuarioRol" class="form-label">Rol</label>
                                     <select class="form-select" id="usuarioRol" required></select>
+                                    <div class="form-text d-none" id="usuarioRolClienteHint">El rol de cuentas cliente no se cambia aquí.</div>
                                 </div>
                                 <div class="mb-3">
                                     <label for="usuarioEstado" class="form-label">Estado</label>
                                     <select class="form-select" id="usuarioEstado" required></select>
                                 </div>
-                                <div class="mb-0">
+                                <div class="mb-3 d-none" id="wrapUsuarioClienteInfo">
+                                    <label class="form-label">Cliente tienda</label>
+                                    <p class="small text-muted mb-1">Vinculación fija a la ficha de cliente.</p>
+                                    <p class="mb-0 small"><strong>ID:</strong> <span id="usuarioClienteIdLabel"></span></p>
+                                    <p class="mb-0 small"><strong>Nombre:</strong> <span id="usuarioClienteNombre"></span></p>
+                                </div>
+                                <div class="mb-0" id="wrapUsuarioEmpleado">
                                     <label for="usuarioEmpleado" class="form-label">Empleado</label>
                                     <select class="form-select" id="usuarioEmpleado" required></select>
                                 </div>
@@ -96,7 +122,8 @@ $role = $_SESSION['role'] ?? '';
     <?php include __DIR__ . '/../../components/footer.php'; ?>
     <?php include __DIR__ . '/../../components/scripts_bootstrap.php'; ?>
     <script src="<?php echo htmlspecialchars($basePath); ?>/js/services/api.js"></script>
-    <script src="<?php echo htmlspecialchars($basePath); ?>/js/modules/usuarios.js"></script>
+    <script src="<?php echo htmlspecialchars($basePath); ?>/js/utils/validation-helpers.js?v=<?php echo $valHelpersV; ?>"></script>
+    <script src="<?php echo htmlspecialchars($basePath); ?>/js/modules/usuarios.js?v=<?php echo $usuariosJsV; ?>"></script>
     <script src="<?php echo htmlspecialchars($basePath); ?>/js/app.js"></script>
 </body>
 </html>

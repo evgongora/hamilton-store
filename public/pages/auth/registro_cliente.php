@@ -19,7 +19,13 @@ if (!empty($_SESSION['user'])) {
 $pathsFile = __DIR__ . '/../../../backend/config/paths.php';
 $paths = is_file($pathsFile) ? require $pathsFile : ['api' => ''];
 $apiBase = $paths['api'] ?? '';
-$loginUrl = $basePath . '/pages/auth/login.php';
+$regNext = isset($_GET['next']) && $_GET['next'] === 'checkout' ? 'checkout' : '';
+$loginUrlAfterReg = $basePath . '/pages/auth/login.php?registered=1';
+$loginUrlPlain = $basePath . '/pages/auth/login.php';
+if ($regNext === 'checkout') {
+    $loginUrlAfterReg .= '&next=checkout';
+    $loginUrlPlain .= '?next=checkout';
+}
 $tiendaUrl = $basePath . '/pages/tienda/Homepage.php';
 $logoUrl = $basePath . '/assets/img/Header-logo.png';
 ?>
@@ -63,8 +69,14 @@ $logoUrl = $basePath . '/assets/img/Header-logo.png';
                         <div class="text-center mb-4">
                             <img src="<?php echo htmlspecialchars($logoUrl); ?>" alt="M. Hamilton Store" class="auth-logo mb-3">
                             <h1 class="h4 mb-1">Crear cuenta de cliente</h1>
-                            <p class="text-muted small mb-0">Solo para compras en la tienda. Necesitarás este usuario para iniciar sesión.</p>
+                            <p class="text-muted small mb-0">Para comprar en la tienda necesitás cuenta e inicio de sesión. Este formulario crea tu cliente y tu usuario en el sistema.</p>
                         </div>
+
+                        <?php if ($regNext === 'checkout'): ?>
+                        <div class="alert alert-info small py-2 mb-3" role="status">
+                            <i class="bi bi-cart3 me-1"></i> Después de registrarte, iniciá sesión para continuar al checkout.
+                        </div>
+                        <?php endif; ?>
 
                         <div id="regAlert" class="alert d-none" role="alert"></div>
 
@@ -105,10 +117,10 @@ $logoUrl = $basePath . '/assets/img/Header-logo.png';
                         </form>
 
                         <p class="text-center text-muted small mt-4 mb-0">
-                            ¿Ya tienes cuenta? <a href="<?php echo htmlspecialchars($loginUrl); ?>">Iniciar sesión</a>
+                            ¿Ya tienes cuenta? <a href="<?php echo htmlspecialchars($loginUrlPlain); ?>">Iniciar sesión</a>
                         </p>
                         <p class="text-center text-muted small mt-2 mb-0">
-                            <i class="bi bi-shield-lock me-1"></i> Si trabajas en el salón, pide tu usuario a un administrador.
+                            <i class="bi bi-shield-lock me-1"></i> Si trabajás en el salón, pedí tu usuario a <strong>administración o caja</strong>.
                         </p>
                     </div>
                 </div>
@@ -120,6 +132,7 @@ $logoUrl = $basePath . '/assets/img/Header-logo.png';
     window.API_BASE = <?php echo json_encode($apiBase, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP); ?>;
     </script>
     <script src="<?php echo htmlspecialchars($basePath); ?>/js/services/api.js"></script>
+    <script src="<?php echo htmlspecialchars($basePath); ?>/js/utils/validation-helpers.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
     (function () {
@@ -158,13 +171,42 @@ $logoUrl = $basePath . '/assets/img/Header-logo.png';
           showAlert('warning', 'Las contraseñas no coinciden.');
           return;
         }
-        var reNom = /^[A-Za-z ]+$/;
-        if (!reNom.test(nombre) || !reNom.test(apellido)) {
-          showAlert(
-            'warning',
-            'Nombre y apellido solo pueden usar letras sin tilde (A-Z) y espacios. Ejemplos: Maria, Perez.'
-          );
-          return;
+        var Hv = window.HamiltonValidation;
+        if (Hv) {
+          if (!Hv.clienteNombreOracle(nombre) || nombre.trim().length > 100) {
+            showAlert(
+              'warning',
+              'Nombre: solo letras A-Z y espacios (sin tildes ni ñ), máximo 100 caracteres.'
+            );
+            return;
+          }
+          if (!Hv.clienteNombreOracle(apellido) || apellido.trim().length > 100) {
+            showAlert(
+              'warning',
+              'Apellido: solo letras A-Z y espacios (sin tildes ni ñ), máximo 100 caracteres.'
+            );
+            return;
+          }
+          if (!Hv.clienteEmailOracle(email) || email.length > 200) {
+            showAlert('warning', 'Email con formato inválido (máximo 200 caracteres).');
+            return;
+          }
+          if (!Hv.usernameRegistroCliente(username)) {
+            showAlert(
+              'warning',
+              'Usuario: entre 3 y 50 caracteres; solo letras, números, punto, guion y guion bajo.'
+            );
+            return;
+          }
+        } else {
+          var reNom = /^[A-Za-z ]+$/;
+          if (!reNom.test(nombre) || !reNom.test(apellido)) {
+            showAlert(
+              'warning',
+              'Nombre y apellido solo pueden usar letras sin tilde (A-Z) y espacios. Ejemplos: Maria, Perez.'
+            );
+            return;
+          }
         }
 
         btn.disabled = true;
@@ -178,7 +220,7 @@ $logoUrl = $basePath . '/assets/img/Header-logo.png';
           password: password,
           passwordConfirm: password2
         }).then(function () {
-          window.location.href = <?php echo json_encode($loginUrl . '?registered=1'); ?>;
+          window.location.href = <?php echo json_encode($loginUrlAfterReg); ?>;
         }).catch(function (err) {
           showAlert('danger', err.message || 'No se pudo registrar.');
         }).finally(function () {

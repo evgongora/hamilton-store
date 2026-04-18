@@ -113,31 +113,15 @@ include_once $_SERVER['DOCUMENT_ROOT'] . '/hamilton-store/public/components/layo
                 <div class="col-lg-4">
                     <div class="card sticky-top">
                         <div class="card-header bg-dark text-white">
-                            <h5 class="mb-0"><i class="bi bi-credit-card me-2"></i>Pasarela de pagos (mock)</h5>
+                            <h5 class="mb-0"><i class="bi bi-credit-card me-2"></i>Pago</h5>
                         </div>
                         <div class="card-body">
-                            <p class="text-muted small">Proyecto universitario - simulaci&oacute;n de pago</p>
+                            <p class="text-muted small">M&eacute;todos desde Oracle. La venta y el cobro se registran al confirmar.</p>
                             <div class="mb-4">
                                 <label class="form-label">M&eacute;todo de pago</label>
                                 <select id="metodoPago" class="form-select">
                                     <option value="">-- Cargando... --</option>
                                 </select>
-                            </div>
-                            <div id="mockTarjeta" class="mb-3">
-                                <div class="mb-2">
-                                    <label class="form-label small">N&uacute;mero de tarjeta</label>
-                                    <input type="text" class="form-control" placeholder="**** **** **** ****" maxlength="19" value="4111 1111 1111 1111">
-                                </div>
-                                <div class="row g-2">
-                                    <div class="col-6">
-                                        <label class="form-label small">Vencimiento</label>
-                                        <input type="text" class="form-control" placeholder="MM/AA" value="12/28">
-                                    </div>
-                                    <div class="col-6">
-                                        <label class="form-label small">CVV</label>
-                                        <input type="text" class="form-control" placeholder="***" value="123">
-                                    </div>
-                                </div>
                             </div>
                             <hr>
                             <button type="button" id="btnPagar" class="btn btn-success btn-lg w-100">
@@ -159,6 +143,7 @@ include_once $_SERVER['DOCUMENT_ROOT'] . '/hamilton-store/public/components/layo
 
     <?php MostrarFooter(); ?>
     <?php MostrarJS(); ?>
+    <script src="<?php echo htmlspecialchars($basePathCheckout); ?>/js/utils/validation-helpers.js"></script>
     <script>
     window.HAMILTON_CHECKOUT_CLIENTE = <?php echo json_encode($checkoutClienteSession, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP); ?>;
     </script>

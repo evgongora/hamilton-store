@@ -10,11 +10,26 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../config/api_helpers.php';
 
-api_require_staff_session();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+$role = $_SESSION['role'] ?? '';
+$esStaff = in_array($role, ['admin', 'cajero', 'inventario', 'soporte'], true);
+$esClienteTienda = ($role === 'cliente' && !empty($_SESSION['cliente_id']));
+if (!$esStaff && !$esClienteTienda) {
+    api_json_response(['ok' => false, 'error' => 'No autorizado'], 401);
+    exit;
+}
+
 api_require_method('POST');
 $conn = api_require_oracle();
 $body = api_read_json_body();
 $action = isset($body['action']) ? strtolower(trim((string) $body['action'])) : '';
+
+if ($action !== 'insert' && !$esStaff) {
+    api_json_response(['ok' => false, 'error' => 'Solo el personal puede modificar o eliminar pagos'], 403);
+    exit;
+}
 
 if ($action === 'insert') {
     $monto = isset($body['monto']) ? (float) $body['monto'] : null;
@@ -26,12 +41,33 @@ if ($action === 'insert') {
         api_json_response(['ok' => false, 'error' => 'monto, fechaPago, idMetodoPago e idVenta son obligatorios'], 400);
         exit;
     }
+    if (!hamilton_monto_positivo_valido($monto)) {
+        api_json_response(['ok' => false, 'error' => 'El monto debe ser un número finito mayor que cero.'], 400);
+        exit;
+    }
+    if (!hamilton_metodo_pago_existe($conn, $idMetodo)) {
+        api_json_response(['ok' => false, 'error' => 'Método de pago inválido.'], 400);
+        exit;
+    }
+    if (!hamilton_encabezado_venta_existe($conn, $idVenta)) {
+        api_json_response(['ok' => false, 'error' => 'Venta no encontrada.'], 400);
+        exit;
+    }
     $ts = strtotime($fechaRaw);
     if ($ts === false) {
         api_json_response(['ok' => false, 'error' => 'fechaPago inválida'], 400);
         exit;
     }
     $fechaBind = date('Y-m-d', $ts);
+
+    if ($esClienteTienda) {
+        $cidSes = (int) $_SESSION['cliente_id'];
+        $propietario = hamilton_encabezado_venta_id_cliente($conn, $idVenta);
+        if ($propietario === null || $propietario !== $cidSes) {
+            api_json_response(['ok' => false, 'error' => 'La venta no pertenece a su cuenta'], 403);
+            exit;
+        }
+    }
 
     $sql = <<<'SQL'
 BEGIN
@@ -72,6 +108,18 @@ if ($action === 'update') {
 
     if ($id <= 0 || $monto === null || $fechaRaw === '' || $idMetodo <= 0 || $idVenta <= 0) {
         api_json_response(['ok' => false, 'error' => 'id, monto, fechaPago, idMetodoPago e idVenta son obligatorios'], 400);
+        exit;
+    }
+    if (!hamilton_monto_positivo_valido($monto)) {
+        api_json_response(['ok' => false, 'error' => 'El monto debe ser un número finito mayor que cero.'], 400);
+        exit;
+    }
+    if (!hamilton_metodo_pago_existe($conn, $idMetodo)) {
+        api_json_response(['ok' => false, 'error' => 'Método de pago inválido.'], 400);
+        exit;
+    }
+    if (!hamilton_encabezado_venta_existe($conn, $idVenta)) {
+        api_json_response(['ok' => false, 'error' => 'Venta no encontrada.'], 400);
         exit;
     }
     $ts = strtotime($fechaRaw);

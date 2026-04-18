@@ -337,8 +337,15 @@
       var cedula = document.getElementById('providerCedulaJuridica').value.trim();
       var web = document.getElementById('providerPaginaWeb').value.trim();
       var idEst = parseInt(document.getElementById('providerIdEstado').value, 10);
-      if (!nombre || !cedula || !idEst) {
-        void uiAlert('Complete nombre, cédula jurídica y estado.');
+      var Vp = window.HamiltonValidation;
+      if (Vp && typeof Vp.proveedorFormMensaje === 'function') {
+        var errPr = Vp.proveedorFormMensaje(nombre, cedula, web, idEst);
+        if (errPr) {
+          void uiAlert(errPr);
+          return;
+        }
+      } else if (!nombre || !idEst) {
+        void uiAlert('Complete nombre y estado.');
         return;
       }
       var body = {
@@ -377,7 +384,18 @@
       var apellido = document.getElementById('contactApellido').value.trim();
       var email = document.getElementById('contactEmail').value.trim();
       var telefono = document.getElementById('contactTelefono').value.trim();
-      if (!nombre || !apellido || !email || !telefono || !pid) {
+      if (!pid) {
+        void uiAlert('Seleccione un proveedor.');
+        return;
+      }
+      var Vc = window.HamiltonValidation;
+      if (Vc && typeof Vc.contactoProveedorFormMensaje === 'function') {
+        var errCt = Vc.contactoProveedorFormMensaje(nombre, apellido, email, telefono);
+        if (errCt) {
+          void uiAlert(errCt);
+          return;
+        }
+      } else if (!nombre || !apellido || !email || !telefono) {
         void uiAlert('Complete todos los campos del contacto.');
         return;
       }

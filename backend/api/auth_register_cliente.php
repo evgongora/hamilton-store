@@ -40,8 +40,8 @@ if (strlen($username) < 3 || strlen($username) > 50) {
     api_json_response(['ok' => false, 'error' => 'El usuario debe tener entre 3 y 50 caracteres.'], 400);
     exit;
 }
-if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-    api_json_response(['ok' => false, 'error' => 'Email no válido.'], 400);
+if (!hamilton_cliente_email_valido_oracle($email)) {
+    api_json_response(['ok' => false, 'error' => 'Email no válido (use un formato como correo@dominio.com).'], 400);
     exit;
 }
 if (!hamilton_cliente_nombre_valido_oracle($nombre) || !hamilton_cliente_nombre_valido_oracle($apellido)) {
