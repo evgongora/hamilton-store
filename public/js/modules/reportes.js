@@ -1,17 +1,15 @@
 /**
- * reportes.js — Ventas y cobros por rango de fechas (API Oracle + respaldo localStorage).
+ * reportes.js — Ventas y cobros por rango de fechas (solo API Oracle).
  */
 (function () {
   'use strict';
 
-  const STORAGE_KEY = 'hamilton_ventas';
-
-  function getVentasLocal() {
-    try {
-      return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-    } catch (e) {
-      return [];
+  function uiAlert(msg, title) {
+    if (window.UiDialog && window.UiDialog.alert) {
+      return window.UiDialog.alert(String(msg), { title: title || 'Reportes' });
     }
+    alert(msg);
+    return Promise.resolve();
   }
 
   function formatMoney(n) {
@@ -190,8 +188,9 @@
 
     function loadData() {
       if (!window.Api) {
-        ventasCache = getVentasLocal();
+        ventasCache = [];
         runFilter();
+        void uiAlert('No hay conexión a la API (API_BASE).', 'Reportes');
         return;
       }
       window.Api
@@ -200,9 +199,10 @@
           ventasCache = mapApiVentas(json.data || []);
           runFilter();
         })
-        .catch(function () {
-          ventasCache = getVentasLocal();
+        .catch(function (e) {
+          ventasCache = [];
           runFilter();
+          void uiAlert(e.message || 'No se pudieron cargar las ventas desde el servidor.', 'Reportes');
         });
     }
 

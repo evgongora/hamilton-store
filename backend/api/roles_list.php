@@ -1,19 +1,18 @@
 <?php
 /**
- * GET — Lista roles (excluye CLIENTE; formularios de usuarios de personal).
+ * GET — Lista roles (incluye CLIENTE; el formulario de usuarios filtra según tipo de cuenta).
  */
 declare(strict_types=1);
 
 require_once __DIR__ . '/../config/api_helpers.php';
 
-api_require_admin_session();
+api_require_usuarios_gestion_roles();
 api_require_method('GET');
 $conn = api_require_oracle();
 
 $sql = <<<'SQL'
 SELECT id_rol, nombre
   FROM roles
- WHERE UPPER(TRIM(nombre)) <> 'CLIENTE'
  ORDER BY id_rol
 SQL;
 

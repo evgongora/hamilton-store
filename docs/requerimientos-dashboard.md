@@ -19,7 +19,10 @@
 | Usuarios y roles | Usuarios | `public/pages/sistema/usuarios.php` | **Oracle** (`usuarios_list.php`, `usuarios_save.php`, `roles_list.php`) |
 | Empleados | Empleados | `empleados.php` | **Oracle** (`empleados_list.php`, `empleados_save.php`) |
 | Clientes | Clientes | `clientes.php` | **Oracle** lectura (`clientes_list.php`); UI listado + búsqueda |
-| Direcciones y ubicación | Ubicaciones | `ubicaciones.php` | **localStorage** + seed JSON (no API Oracle en el front actual) |
+| Ubicación jerárquica | Ubicaciones | `ubicaciones.php` | **Oracle** (`provincias_*`, `cantones_*`, `distritos_*`) |
+| Direcciones y teléfonos | Direcciones y teléfonos | `datos_auxiliares.php` | **Oracle** (`direcciones_*`, `telefonos_clientes_*`, `telefonos_cont_proveedor_*`) |
+| Movimientos de stock | Gestión de stock | `gestion_stock.php` | **Oracle** (`tipo_gestion_*`, `gestion_stock_*`) |
+| Métodos de pago (catálogo) | Métodos de pago | `metodos_pago.php` | **Oracle** (`metodos_pago_*`; en Pagos solo listado) |
 | Productos y categorías | Productos | `productos.php` | **Oracle** (`productos_list.php`, `productos_save.php`, `categorias_*`, `estados_list.php`) |
 | Proveedores y contactos | Proveedores | `proveedores.php` | **Oracle** (`proveedores_*`, `contactos_proveedor_*`) |
 | Compras | Compras | `compras.php` | **Oracle** (`compras_create.php`, listas de productos/proveedores) |
@@ -39,9 +42,9 @@ La fuente de verdad es `hamilton_staff_menu_keys()` en `backend/config/auth_guar
 
 | Rol | Acceso típico al menú |
 |-----|------------------------|
-| **admin** | Dashboard, productos, inventario, clientes, ubicaciones, proveedores, compras, ventas, pagos, empleados, usuarios, reportes |
+| **admin** | Dashboard, productos, inventario, clientes, ubicaciones, direcciones/teléfonos, gestión de stock, métodos de pago, proveedores, compras, ventas, pagos, empleados, usuarios, reportes |
 | **soporte** | Igual que admin excepto **usuarios** |
 | **cajero** | Clientes, inventario, ventas, pagos |
-| **inventario** | Productos, inventario, proveedores, compras |
+| **inventario** | Productos, inventario, gestión de stock, proveedores, compras |
 
 Las páginas del sistema deben coincidir con estas listas para evitar enlaces rotos o accesos no autorizados.

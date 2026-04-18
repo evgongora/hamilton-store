@@ -1,6 +1,6 @@
 <?php
 /**
- * ubicaciones.php — Provincias, cantones y distritos (demo localStorage).
+ * ubicaciones.php — Provincias, cantones y distritos vía API Oracle (pkg_*).
  */
 require_once __DIR__ . '/../../../backend/config/auth_guard.php';
 requireRole(['admin', 'soporte']);
@@ -27,7 +27,7 @@ $role = $_SESSION['role'] ?? '';
         <main class="app-content">
             <h1 class="mb-2">Ubicaciones</h1>
             <p class="text-muted small mb-4">
-                Jerarquía provincia → cantón → distrito (demo en el navegador). Para producción, sincronizar con tablas Oracle de ubicación.
+                Provincias, cantones y distritos desde Oracle (<code>pkg_provincias</code>, <code>pkg_cantones</code>, <code>pkg_distritos</code>).
             </p>
 
             <ul class="nav nav-tabs mb-3" role="tablist">
@@ -148,6 +148,8 @@ $role = $_SESSION['role'] ?? '';
     </div>
     <?php include __DIR__ . '/../../components/footer.php'; ?>
     <?php include __DIR__ . '/../../components/scripts_bootstrap.php'; ?>
+    <script src="<?php echo htmlspecialchars($basePath); ?>/js/services/api.js"></script>
+    <script src="<?php echo htmlspecialchars($basePath); ?>/js/utils/validation-helpers.js"></script>
     <script src="<?php echo htmlspecialchars($basePath); ?>/js/modules/ubicaciones.js"></script>
     <script src="<?php echo htmlspecialchars($basePath); ?>/js/app.js"></script>
 </body>

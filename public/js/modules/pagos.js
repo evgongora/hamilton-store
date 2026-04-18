@@ -118,9 +118,14 @@
     const montoStr = document.getElementById('montoPago').value;
 
     if (!ventaId || !window.Api) return;
-    const monto = parseFloat(montoStr);
-    if (isNaN(monto) || monto <= 0) {
-      void uiAlert('Ingrese un monto válido');
+    const monto = parseFloat(String(montoStr).replace(',', '.'));
+    const Vp = window.HamiltonValidation;
+    const montoOk =
+      Vp && typeof Vp.montoPositivo === 'function'
+        ? Vp.montoPositivo(monto)
+        : !isNaN(monto) && isFinite(monto) && monto > 0;
+    if (!montoOk) {
+      void uiAlert('Ingrese un monto válido (número mayor que cero).');
       return;
     }
     if (!metodoPagoId) {

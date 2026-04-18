@@ -3,7 +3,7 @@
 ## Vista general
 
 - **Servidor**: PHP (Apache / XAMPP) sirve páginas en `public/` y expone la API en `backend/api/`.
-- **Datos**: Oracle Database; acceso con **OCI8** (`backend/config/db.php`). Paquetes PL/SQL según el esquema del proyecto.
+- **Datos**: Oracle Database; acceso con **OCI8** (`backend/config/db.php`). Paquetes PL/SQL según el esquema del proyecto (detalle: [`oracle-paquetes-y-api.md`](oracle-paquetes-y-api.md)).
 - **Cliente**: HTML + **Bootstrap 5.2** + JavaScript sin framework; módulos en `public/js/modules/` que usan `public/js/services/api.js` (fetch JSON con `credentials: 'same-origin'`).
 
 ## Estructura de carpetas (resumen)

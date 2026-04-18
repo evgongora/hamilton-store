@@ -44,13 +44,27 @@
     return base + sep + 'next=checkout';
   }
 
+  function registroUrlComprar() {
+    let u = typeof window.HAMILTON_REGISTRO_URL === 'string' ? window.HAMILTON_REGISTRO_URL : '';
+    if (!u) {
+      u = '/hamilton-store/public/pages/auth/registro_cliente.php';
+    }
+    const sep = u.indexOf('?') === -1 ? '?' : '&';
+    return u + sep + 'next=checkout';
+  }
+
   function ensureBannerComprar(container) {
     if (puedeComprarTienda() || document.getElementById('tienda-aviso-login')) return;
     const loginHref = escapeHtml(loginUrlComprar());
+    const regHref = escapeHtml(registroUrlComprar());
     const html =
       '<div id="tienda-aviso-login" class="alert alert-light border small mb-4 py-2 px-3" role="status">' +
       '<i class="bi bi-lock-fill text-secondary me-2" aria-hidden="true"></i>' +
-      '<span class="text-muted">Solo cuentas cliente pueden comprar.</span> ' +
+      '<span class="text-muted">Para comprar necesitás cuenta de cliente.</span> ' +
+      '<a href="' +
+      regHref +
+      '" class="link-dark small fw-semibold">Crear cuenta</a>' +
+      ' <span class="text-muted">·</span> ' +
       '<a href="' +
       loginHref +
       '" class="link-dark small">Iniciar sesión</a>' +

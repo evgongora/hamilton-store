@@ -18,7 +18,10 @@ $role = $_SESSION['role'] ?? '';
     <div class="app-main">
         <?php include __DIR__ . '/../../components/sidebar.php'; ?>
         <main class="app-content">
-            <h1 class="mb-4">Registrar pago</h1>
+            <h1 class="mb-2">Registrar pago</h1>
+            <p class="text-muted small mb-4">
+                Pagos registrados desde Oracle (<code>pkg_pagos</code>). Métodos de pago desde <code>pkg_metodos_pago</code> (listado).
+            </p>
 
             <div class="row g-4">
                 <div class="col-lg-6">
@@ -78,6 +81,7 @@ $role = $_SESSION['role'] ?? '';
     <?php include __DIR__ . '/../../components/footer.php'; ?>
     <?php include __DIR__ . '/../../components/scripts_bootstrap.php'; ?>
     <script src="<?php echo htmlspecialchars($basePath); ?>/js/services/api.js"></script>
+    <script src="<?php echo htmlspecialchars($basePath); ?>/js/utils/validation-helpers.js"></script>
     <script src="<?php echo htmlspecialchars($basePath); ?>/js/app.js"></script>
     <script src="<?php echo htmlspecialchars($basePath); ?>/js/modules/pagos.js"></script>
 </body>

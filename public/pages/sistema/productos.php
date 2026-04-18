@@ -32,6 +32,9 @@ $role = $_SESSION['role'] ?? '';
             <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
                 <h1 class="mb-0">Productos y categorías</h1>
             </div>
+            <p class="text-muted small mb-3">
+                Productos y categorías desde Oracle (<code>pkg_productos</code>, <code>pkg_ref_catalogos</code> para categorías).
+            </p>
 
             <ul class="nav nav-tabs mb-3" id="productosModTabs" role="tablist">
                 <li class="nav-item" role="presentation">
@@ -163,6 +166,7 @@ $role = $_SESSION['role'] ?? '';
     <?php include __DIR__ . '/../../components/footer.php'; ?>
     <?php include __DIR__ . '/../../components/scripts_bootstrap.php'; ?>
     <script src="<?php echo htmlspecialchars($basePath); ?>/js/services/api.js"></script>
+    <script src="<?php echo htmlspecialchars($basePath); ?>/js/utils/validation-helpers.js"></script>
     <script src="<?php echo htmlspecialchars($basePath); ?>/js/modules/productos.js"></script>
     <script src="<?php echo htmlspecialchars($basePath); ?>/js/app.js"></script>
 </body>

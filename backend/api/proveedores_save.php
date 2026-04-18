@@ -22,6 +22,26 @@ if ($action === 'insert') {
     $web = trim((string) ($body['paginaWeb'] ?? ''));
     $idEst = isset($body['idEstado']) ? (int) $body['idEstado'] : 0;
 
+    $eNom = hamilton_texto_libre_validar($nombre, 200, false);
+    if ($eNom !== null) {
+        api_json_response(['ok' => false, 'error' => 'Nombre: ' . $eNom], 400);
+        exit;
+    }
+    $eCed = hamilton_texto_libre_validar($cedula, 30, true);
+    if ($eCed !== null) {
+        api_json_response(['ok' => false, 'error' => 'Cédula jurídica: ' . $eCed], 400);
+        exit;
+    }
+    $eWeb = hamilton_texto_libre_validar($web, 500, true);
+    if ($eWeb !== null) {
+        api_json_response(['ok' => false, 'error' => 'Página web: ' . $eWeb], 400);
+        exit;
+    }
+    if ($idEst <= 0 || !hamilton_estado_id_existe($conn, $idEst)) {
+        api_json_response(['ok' => false, 'error' => 'Estado inválido.'], 400);
+        exit;
+    }
+
     $sql = 'BEGIN M_HAMILTON_STORE.pkg_proveedores.sp_insertar_proveedor(
         :nombre, :cedula, :web, :id_est
     ); END;';
@@ -52,6 +72,30 @@ if ($action === 'update') {
     $web = trim((string) ($body['paginaWeb'] ?? ''));
     $idEst = isset($body['idEstado']) ? (int) $body['idEstado'] : 0;
 
+    if ($id <= 0) {
+        api_json_response(['ok' => false, 'error' => 'id de proveedor inválido.'], 400);
+        exit;
+    }
+    $eNomU = hamilton_texto_libre_validar($nombre, 200, false);
+    if ($eNomU !== null) {
+        api_json_response(['ok' => false, 'error' => 'Nombre: ' . $eNomU], 400);
+        exit;
+    }
+    $eCedU = hamilton_texto_libre_validar($cedula, 30, true);
+    if ($eCedU !== null) {
+        api_json_response(['ok' => false, 'error' => 'Cédula jurídica: ' . $eCedU], 400);
+        exit;
+    }
+    $eWebU = hamilton_texto_libre_validar($web, 500, true);
+    if ($eWebU !== null) {
+        api_json_response(['ok' => false, 'error' => 'Página web: ' . $eWebU], 400);
+        exit;
+    }
+    if ($idEst <= 0 || !hamilton_estado_id_existe($conn, $idEst)) {
+        api_json_response(['ok' => false, 'error' => 'Estado inválido.'], 400);
+        exit;
+    }
+
     $sql = 'BEGIN M_HAMILTON_STORE.pkg_proveedores.sp_actualizar_proveedor(
         :id, :nombre, :cedula, :web, :id_est
     ); END;';
@@ -78,6 +122,10 @@ if ($action === 'update') {
 
 if ($action === 'delete') {
     $id = isset($body['id']) ? (int) $body['id'] : 0;
+    if ($id <= 0) {
+        api_json_response(['ok' => false, 'error' => 'id de proveedor inválido.'], 400);
+        exit;
+    }
     $sql = 'BEGIN M_HAMILTON_STORE.pkg_proveedores.sp_eliminar_proveedor(:id); END;';
     $st = oci_parse($conn, $sql);
     if (!$st) {

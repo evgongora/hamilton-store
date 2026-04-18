@@ -45,7 +45,8 @@ function MostrarNavbar() {
                     </a>'
                         : '') .
                     (empty($_SESSION['user'])
-                        ? '<a class="btn btn-dark navbar-login-btn" href="' . $base . '/pages/auth/login.php"><i class="bi bi-box-arrow-in-right me-1"></i>Iniciar sesión</a>'
+                        ? '<a class="btn btn-outline-dark btn-sm me-2" href="' . $base . '/pages/auth/registro_cliente.php"><i class="bi bi-person-plus me-1"></i>Crear cuenta</a>'
+                        . '<a class="btn btn-dark navbar-login-btn" href="' . $base . '/pages/auth/login.php"><i class="bi bi-box-arrow-in-right me-1"></i>Iniciar sesión</a>'
                         : ('<span class="text-muted me-2 small">' . htmlspecialchars($_SESSION['user']) . '</span>' .
                           (in_array($_SESSION['role'] ?? '', ['admin', 'cajero', 'inventario', 'soporte'], true)
                               ? '<a class="btn btn-outline-primary btn-sm me-2" href="' . $base . '/pages/sistema/dashboard.php">Dashboard</a>'
@@ -70,14 +71,16 @@ function MostrarJS() {
     $api = $paths['api'];
     $puedeComprar = (($_SESSION['role'] ?? '') === 'cliente');
     $loginUrl = $base . '/pages/auth/login.php';
+    $registroUrlTienda = $base . '/pages/auth/registro_cliente.php';
     echo '<script>window.API_BASE=' . json_encode($api, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) . ';'
         . 'window.HAMILTON_TIENDA_PUEDE_COMPRAR=' . ($puedeComprar ? 'true' : 'false') . ';'
-        . 'window.HAMILTON_LOGIN_URL=' . json_encode($loginUrl, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) . ';</script>';
+        . 'window.HAMILTON_LOGIN_URL=' . json_encode($loginUrl, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) . ';'
+        . 'window.HAMILTON_REGISTRO_URL=' . json_encode($registroUrlTienda, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) . ';</script>';
     echo '<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="' . $base . '/js/ui-dialog.js"></script>
     <script src="' . $base . '/js/services/api.js"></script>
     <script src="' . $base . '/js/modules/tienda-carrito.js"></script>
-    <script src="' . $base . '/js/modules/tienda-productos.js?v=4"></script>
+    <script src="' . $base . '/js/modules/tienda-productos.js?v=5"></script>
     <script src="' . $base . '/js/scripts.js"></script>';
 }
 ?>

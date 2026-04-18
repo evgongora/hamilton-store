@@ -278,13 +278,22 @@
     var idCat = parseInt(document.getElementById('prodIdCategoria').value, 10);
     var idEst = parseInt(document.getElementById('prodIdEstado').value, 10);
 
-    if (!nombre) {
-      void uiAlert('Indique el nombre del producto.');
-      return;
-    }
-    if (!idCat || !idEst) {
-      void uiAlert('Seleccione categoría y estado.');
-      return;
+    var V = window.HamiltonValidation;
+    if (V && typeof V.productoFormMensaje === 'function') {
+      var errP = V.productoFormMensaje(nombre, pc, pv, cant, idCat, idEst);
+      if (errP) {
+        void uiAlert(errP);
+        return;
+      }
+    } else {
+      if (!nombre) {
+        void uiAlert('Indique el nombre del producto.');
+        return;
+      }
+      if (!idCat || !idEst) {
+        void uiAlert('Seleccione categoría y estado.');
+        return;
+      }
     }
 
     var body = {
@@ -356,7 +365,14 @@
     }
     var id = document.getElementById('catId').value.trim();
     var nombre = document.getElementById('catNombre').value.trim();
-    if (!nombre) {
+    var Vc = window.HamiltonValidation;
+    if (Vc && Vc.textoLibreMensaje) {
+      var errC = Vc.textoLibreMensaje(nombre, 50, false, 'Nombre');
+      if (errC) {
+        void uiAlert(errC);
+        return;
+      }
+    } else if (!nombre) {
       void uiAlert('Indique el nombre de la categoría.');
       return;
     }

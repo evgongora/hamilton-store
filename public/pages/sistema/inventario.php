@@ -35,7 +35,7 @@ $canEditStock = in_array($role, ['admin', 'inventario', 'soporte'], true);
                 <?php endif; ?>
             </div>
             <p class="text-muted small mb-3">
-                Stock por producto. Los ajustes de cantidad respetan las reglas de la base (triggers / paquetes).
+                Stock por producto desde Oracle; los ajustes usan <code>pkg_productos</code> (triggers en la base).
             </p>
 
             <div class="card shadow-sm border-0 mb-3">
@@ -93,6 +93,7 @@ $canEditStock = in_array($role, ['admin', 'inventario', 'soporte'], true);
     <?php include __DIR__ . '/../../components/footer.php'; ?>
     <?php include __DIR__ . '/../../components/scripts_bootstrap.php'; ?>
     <script src="<?php echo htmlspecialchars($basePath); ?>/js/services/api.js"></script>
+    <script src="<?php echo htmlspecialchars($basePath); ?>/js/utils/validation-helpers.js"></script>
     <script src="<?php echo htmlspecialchars($basePath); ?>/js/modules/inventario.js"></script>
     <script src="<?php echo htmlspecialchars($basePath); ?>/js/app.js"></script>
 </body>

@@ -17,6 +17,7 @@ SELECT c.id_cliente,
        c.apellido,
        c.email,
        c.fecha_ingreso,
+       c.estados_id_estado,
        e.nombre AS estado_nombre
   FROM clientes c
   JOIN estados e ON e.id_estado = c.estados_id_estado
@@ -45,6 +46,7 @@ while ($row = oci_fetch_assoc($st)) {
         'apellido'     => $row['apellido'],
         'email'        => $row['email'],
         'fechaIngreso' => $row['fecha_ingreso'],
+        'idEstado'     => (int) $row['estados_id_estado'],
         'estado'       => $row['estado_nombre'],
     ];
 }

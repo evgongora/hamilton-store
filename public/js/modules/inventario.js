@@ -166,8 +166,10 @@
     }
     var id = parseInt(document.getElementById('invProdId').value, 10);
     var nueva = parseInt(document.getElementById('invNuevaCantidad').value, 10);
-    if (isNaN(nueva) || nueva < 0) {
-      void uiAlert('Indique una cantidad válida (≥ 0).');
+    var Vi = window.HamiltonValidation;
+    var stockOk = Vi && Vi.enteroNoNegativo ? Vi.enteroNoNegativo(nueva) : !isNaN(nueva) && nueva >= 0;
+    if (!stockOk) {
+      void uiAlert('Indique una cantidad válida (entero ≥ 0).');
       return;
     }
     var prod = productos.find(function (x) {

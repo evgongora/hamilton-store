@@ -27,9 +27,12 @@ $role = $_SESSION['role'] ?? '';
         <?php include __DIR__ . '/../../components/sidebar.php'; ?>
         <main class="app-content">
             <h1 class="mb-2">Dashboard</h1>
-            <p class="text-muted mb-4">
+            <p class="text-muted mb-2">
                 Bienvenido, <strong><?php echo htmlspecialchars($user); ?></strong>.
                 Rol: <strong><?php echo htmlspecialchars($role); ?></strong>.
+            </p>
+            <p class="text-muted small mb-4">
+                Métricas desde Oracle (ventas y cobros acumulados con la misma base que <code>pkg_encabezados_ventas</code> y <code>pkg_pagos</code>).
             </p>
             <p id="dashApiNote" class="alert alert-warning py-2 small d-none mb-4" role="status"></p>
 

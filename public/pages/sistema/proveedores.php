@@ -150,6 +150,7 @@ $isAdmin = ($role === 'admin');
     <?php include __DIR__ . '/../../components/footer.php'; ?>
     <?php include __DIR__ . '/../../components/scripts_bootstrap.php'; ?>
     <script src="<?php echo htmlspecialchars($basePath); ?>/js/services/api.js"></script>
+    <script src="<?php echo htmlspecialchars($basePath); ?>/js/utils/validation-helpers.js"></script>
     <script src="<?php echo htmlspecialchars($basePath); ?>/js/modules/proveedores.js"></script>
     <script src="<?php echo htmlspecialchars($basePath); ?>/js/app.js"></script>
 </body>

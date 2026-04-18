@@ -262,6 +262,19 @@
       return;
     }
 
+    var Vco = window.HamiltonValidation;
+    if (Vco && Vco.fechaYyyyMmDd && !Vco.fechaYyyyMmDd(fechaCompra)) {
+      void uiAlert('Indique una fecha de compra válida (AAAA-MM-DD).');
+      return;
+    }
+    if (Vco && typeof Vco.carritoComprasLineasMensaje === 'function') {
+      var errCo = Vco.carritoComprasLineasMensaje(carrito);
+      if (errCo) {
+        void uiAlert(errCo);
+        return;
+      }
+    }
+
     const proveedorId = parseInt(provStr, 10);
     const lineas = carrito.map(function (i) {
       return {
